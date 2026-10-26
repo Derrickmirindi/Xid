@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="description" content="Xid: an educational, browser-based detector that checks whether a person is carrying a visible ID card, on images, video, and live cameras.">
+<meta name="description" content="Xid: an educational, browser-based detector that boxes one person and tags whether they carry a visible ID card, on images, video, and live cameras.">
 <meta name="color-scheme" content="light dark">
 <title>Xid | ID card detection</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -85,12 +85,10 @@ input::file-selector-button { padding:8px; margin-right:8px; border:1px solid va
 .control-group { margin-top:var(--s3); padding-top:var(--s3); box-shadow:inset 0 1px var(--line); }
 .settings>summary { min-height:48px; font-size:16px; font-weight:600; }
 .field { margin-top:var(--s2); }
-.field>label,.field-label { display:flex; justify-content:space-between; align-items:center; gap:var(--s1); }
+.field>label { display:flex; justify-content:space-between; align-items:center; gap:var(--s1); }
 .field output { font:var(--small)/var(--lh) var(--mono); }
 input[type=range] { display:block; width:100%; min-height:48px; accent-color:var(--accent); margin:8px 0 0; }
 select { width:100%; min-height:48px; background:var(--paper); border:1px solid var(--line); padding:8px; margin-top:8px; }
-.check { display:flex; gap:8px; min-height:48px; align-items:center; font-size:14px; }
-.check input { width:18px; height:18px; accent-color:var(--accent); }
 .hint { font-size:var(--small); line-height:24px; color:var(--muted); }
 .status-box { margin-top:var(--s3); background:var(--panel); padding:var(--s2); min-height:96px; overflow-wrap:anywhere; }
 .status-heading { display:flex; align-items:center; gap:8px; margin-bottom:8px; }
@@ -137,14 +135,10 @@ select { width:100%; min-height:48px; background:var(--paper); border:1px solid 
 .metric-value span { font:var(--small)/24px var(--mono); letter-spacing:0; }
 .metric-label { color:var(--muted); font:var(--small)/24px var(--mono); }
 .results { padding-top:var(--s3); }
-.result-summary { min-height:48px; display:flex; flex-wrap:wrap; gap:8px 24px; margin-top:8px; }
-.count { display:inline-flex; align-items:center; gap:8px; font-size:14px; }
-.swatch { width:12px; height:12px; display:inline-block; }
-.results table { width:100%; border-collapse:collapse; font-size:14px; }
+.results table { width:100%; border-collapse:collapse; font-size:14px; margin-top:8px; }
 th,td { text-align:left; padding:8px 0; border-bottom:1px solid var(--line); }
 th { color:var(--muted); font:var(--small)/24px var(--mono); font-weight:400; }
 td:last-child,th:last-child { text-align:right; }
-.table-wrap { overflow:auto; max-height:280px; }
 .details { grid-column:1/-1; padding:var(--s3) 0; box-shadow:inset 0 1px var(--ink); }
 details summary { cursor:pointer; font-size:14px; min-height:32px; }
 .details-content { display:grid; grid-template-columns:1fr 1fr 1fr; gap:var(--gutter); margin-top:16px; }
@@ -199,7 +193,7 @@ details summary { cursor:pointer; font-size:14px; min-height:32px; }
           <path d="M6 10h3l2.5 3.6L14 10h3l-4 5.5 4 5.5h-3l-2.5-3.6L9 21H6l4-5.5z"/>
           <path d="M19 11h7v2h-7zm0 4h7v2h-7zm0 4h5v2h-5z"/>
         </svg>
-        <span class="kicker">ID card detection<br>Browser-based / YOLOv8-seg</span>
+        <span class="kicker">ID card detection<br>Browser-based / YOLOv8</span>
       </div>
       <nav class="top-actions" aria-label="Display controls">
         <button id="gridToggle" type="button" aria-pressed="false" title="Show the layout grid (G)">Grid [G]</button>
@@ -208,7 +202,7 @@ details summary { cursor:pointer; font-size:14px; min-height:32px; }
     </div>
     <div class="band hero">
       <div class="hero-title"><p class="eyebrow">Look. Detect. Decide.</p><h1 class="masthead optical">Xid</h1></div>
-      <div class="hero-copy"><p>Does this person carry a visible ID card? Xid answers frame by frame, entirely on your device.</p><p class="mono muted">Images / video / live camera</p></div>
+      <div class="hero-copy"><p>One person, one box, one tag: does this person carry a visible ID card? Xid answers frame by frame, entirely on your device.</p><p class="mono muted">Images / video / live camera</p></div>
     </div>
     <div class="band education">
       <span class="label kicker">Educational use only</span>
@@ -246,9 +240,14 @@ details summary { cursor:pointer; font-size:14px; min-height:32px; }
             <select id="backend"><option value="auto">Auto: GPU, then CPU</option><option value="webgpu">Prefer WebGPU</option><option value="wasm">WASM / CPU</option></select>
           </div>
           <div class="field">
-            <label for="conf">Confidence <output id="confValue" for="conf">0.25</output></label>
+            <label for="personConf">Person confidence <output id="personConfValue" for="personConf">0.40</output></label>
+            <input id="personConf" type="range" min=".05" max=".95" step=".05" value=".40" aria-describedby="personHint">
+            <p id="personHint" class="hint">How sure the person model must be before Xid boxes someone.</p>
+          </div>
+          <div class="field">
+            <label for="conf">ID card confidence <output id="confValue" for="conf">0.25</output></label>
             <input id="conf" type="range" min=".05" max=".95" step=".05" value=".25" aria-describedby="confHint">
-            <p id="confHint" class="hint">An ID card counts as detected only at or above this score.</p>
+            <p id="confHint" class="hint">The box is tagged “ID card” only at or above this score.</p>
           </div>
           <div class="field">
             <label for="iou">NMS overlap <output id="iouValue" for="iou">0.45</output></label>
@@ -259,15 +258,9 @@ details summary { cursor:pointer; font-size:14px; min-height:32px; }
             <label for="maxFps">Video processing limit</label>
             <select id="maxFps"><option value="5">Up to 5 analyzed frames/s</option><option value="10" selected>Up to 10 analyzed frames/s</option><option value="15">Up to 15 analyzed frames/s</option><option value="30">Up to 30 analyzed frames/s</option></select>
           </div>
-          <div class="field">
-            <label for="opacity">Mask opacity <output id="opacityValue" for="opacity">45%</output></label>
-            <input id="opacity" type="range" min="0" max=".8" step=".05" value=".45">
-          </div>
-          <label class="check"><input id="showMasks" type="checkbox" checked> Show segmentation masks</label>
-          <label class="check"><input id="showBoxes" type="checkbox" checked> Show boxes and confidence</label>
         </details>
         <div id="statusBox" class="status-box" data-state="loading">
-          <div class="status-heading"><span class="dot" aria-hidden="true"></span><span id="statusTitle" class="kicker">Initializing model</span></div>
+          <div class="status-heading"><span class="dot" aria-hidden="true"></span><span id="statusTitle" class="kicker">Initializing models</span></div>
           <p id="status" role="status" aria-live="polite">Loading the browser inference runtime.</p>
           <button id="retry" type="button" class="full" hidden>Retry model loading</button>
         </div>
@@ -281,10 +274,10 @@ details summary { cursor:pointer; font-size:14px; min-height:32px; }
         </div>
         <div id="stage" class="stage">
           <div id="empty" class="empty">
-            <div><span class="index optical">01</span><h3>Show Xid<br>a person.</h3><p>Choose a photo, load a video, or switch to the live camera. Xid marks every visible ID card it finds and gives a yes / no verdict.</p></div>
-            <div class="empty-bottom"><span>INPUT → ID CARD? → VERDICT</span><span>ON DEVICE</span></div>
+            <div><span class="index optical">01</span><h3>Show Xid<br>a person.</h3><p>Choose a photo, load a video, or switch to the live camera. Xid draws one box around the main person and tags it “ID card” or “No ID card”.</p></div>
+            <div class="empty-bottom"><span>PERSON → ID CARD? → TAG</span><span>ON DEVICE</span></div>
           </div>
-          <canvas id="canvas" width="1280" height="720" hidden aria-label="Source frame with detected ID cards outlined">Your browser does not support canvas.</canvas>
+          <canvas id="canvas" width="1280" height="720" hidden aria-label="Source frame with the main person boxed and tagged">Your browser does not support canvas.</canvas>
           <span id="stageLabel" class="stage-label" hidden>Preview</span>
         </div>
         <div class="transport" aria-label="Playback and export">
@@ -299,16 +292,19 @@ details summary { cursor:pointer; font-size:14px; min-height:32px; }
           <output id="time" class="mono">00:00 / 00:00</output>
         </div>
         <div class="metrics" aria-label="Current frame metrics">
-          <div><div id="objects" class="metric-value optical">–</div><div class="metric-label">ID cards / frame</div></div>
+          <div><div class="metric-value optical"><span id="idScore" style="font:inherit;letter-spacing:inherit">–</span> <span>%</span></div><div class="metric-label">ID card score</div></div>
           <div><div class="metric-value optical"><span id="latency" style="font:inherit;letter-spacing:inherit">–</span> <span>ms</span></div><div class="metric-label">inference + rendering</div></div>
           <div><div class="metric-value optical"><span id="fps" style="font:inherit;letter-spacing:inherit">–</span> <span>fps</span></div><div class="metric-label">analyzed throughput</div></div>
         </div>
         <section class="results" aria-label="Detection results">
           <div class="section-head"><h2>Frame inventory</h2><span id="resultMode" class="mono muted">Awaiting input</span></div>
-          <div id="counts" class="result-summary"><p class="hint">Counts are per frame, not unique people tracked across a video.</p></div>
-          <div id="tableWrap" class="table-wrap" hidden>
-            <table><thead><tr><th scope="col">Instance</th><th scope="col">Class</th><th scope="col">Confidence</th></tr></thead><tbody id="detections"></tbody></table>
-          </div>
+          <table><thead><tr><th scope="col">Check</th><th scope="col">Result</th><th scope="col">Confidence</th></tr></thead>
+            <tbody>
+              <tr><td>Main person</td><td id="rowPerson">–</td><td id="rowPersonConf">–</td></tr>
+              <tr><td>ID card on that person</td><td id="rowId">–</td><td id="rowIdConf">–</td></tr>
+              <tr><td>Other people in frame</td><td id="rowOthers">–</td><td>not boxed</td></tr>
+            </tbody>
+          </table>
           <p id="renderNote" class="hint"></p>
         </section>
       </section>
@@ -316,13 +312,12 @@ details summary { cursor:pointer; font-size:14px; min-height:32px; }
     <details class="details">
       <summary>Model details, privacy, and interpretation</summary>
       <div class="details-content">
-        <section><h3>Local inference, unchanged weights.</h3><p>Xid reads <code>./best.onnx</code> from this page’s folder. It never edits, retrains, or replaces the model. Photos, videos, and camera frames stay in this browser; the app sends no media to a server. Fonts, the runtime, and the model are downloaded over the network.</p></section>
-        <section><h3>What “No ID card” means.</h3><p>The model was trained on one class, <code>person_with_id_card</code>. “No ID card detected” only means nothing scored above the threshold. The card may be hidden, turned away, too small, or unlike the training images, and a frame with nobody in it gives the same answer.</p></section>
-        <section><h3>Learn from predictions, not conclusions.</h3><p>Confidence is a model score, not a calibrated guarantee. Masks are visualizations, not measurements. Live processing samples frames and may skip frames on slower devices. Never use Xid to grant or deny anyone access.</p></section>
+        <section><h3>Two models, unchanged weights.</h3><p>Xid reads <code>./person.onnx</code> (a standard COCO YOLOv8n detector, used only for its <code>person</code> class) to find who to box, and <code>./best.onnx</code> (trained on <code>person_with_id_card</code>) to decide the tag. It never edits or retrains either model. Media stays in this browser.</p></section>
+        <section><h3>How the tag is decided.</h3><p>The largest person in the frame gets the box. If an ID-card detection overlaps at least half of that box’s region, the tag reads “ID card”; otherwise “No ID card”. A hidden, turned, or very small card can still read as “No ID card”.</p></section>
+        <section><h3>Learn from predictions, not conclusions.</h3><p>Confidence is a model score, not a calibrated guarantee. Live processing samples frames and may skip frames on slower devices. Never use Xid to grant or deny anyone access.</p></section>
       </div>
-      <pre id="modelInfo">Model: ./best.onnx
-Runtime: ONNX Runtime Web 1.30.0
-Class labels: person_with_id_card</pre>
+      <pre id="modelInfo">Models: ./person.onnx, ./best.onnx
+Runtime: ONNX Runtime Web 1.30.0</pre>
     </details>
   </main>
   <footer class="grid">
@@ -337,39 +332,32 @@ Class labels: person_with_id_card</pre>
 
 <script>
 "use strict";
-/* DEPLOYMENT: put index.html and best.onnx in the same GitHub Pages folder.
-   Serve via HTTPS or localhost, not by double-clicking a file:// URL.
-   best.onnx is the YOLOv8n-seg export: input [1,3,640,640], outputs
-   output0 [1,37,8400] (4 box + 1 class + 32 mask coefficients) and
-   output1 [1,32,160,160] (mask prototypes). */
-const MODEL_URL = "./best.onnx";
-const CLASS_NAMES = ["person_with_id_card"]; // From data_clean.yaml (nc: 1).
-const CLASS_LABELS = ["Person with ID card"]; // Display text for CLASS_NAMES.
+/* DEPLOYMENT: put index.html, best.onnx and person.onnx in the same GitHub
+   Pages folder. Serve via HTTPS or localhost, not a file:// URL.
+   best.onnx   YOLOv8n-seg, 1 class (person_with_id_card): output0 [1,37,8400], output1 [1,32,160,160]
+   person.onnx YOLOv8n COCO detector, class 0 = person:     output0 [1,84,8400]
+   If person.onnx is missing, Xid falls back to boxing ID-card detections only. */
+const MODELS = Object.freeze({
+  id:     {url:"./best.onnx",   name:"ID card model", required:true},
+  person: {url:"./person.onnx", name:"Person model",  required:false, personClass:0}
+});
 const CONFIG = Object.freeze({
   runtimeBase: "https://cdn.jsdelivr.net/npm/onnxruntime-web@1.30.0/dist/",
   dynamicInputSize: 640, // Used ONLY for dynamic/missing H/W metadata.
-  outputFormat: "auto", // auto | end2end | raw-channels-first | raw-channels-last
-  detectionOutput: "", prototypeOutput: "", // Optional explicit output names.
-  boxCoordinates: "pixels", // Use "normalized" only if that is your export format.
-  maxDetections: 100, maxCandidates: 3000, maxMasks: 50,
+  matchOverlap: 0.5, // Share of the smaller box that must overlap for an ID card to belong to the person.
+  maxDetections: 100, maxCandidates: 3000,
   displayMaxSide: 1600, maxImagePixels: 40000000
 });
+const OK_COLOR = "#00a86b", NO_COLOR = "#e0002a";
 const $ = id => document.getElementById(id);
 const canvas = $("canvas"), ctx = canvas.getContext("2d");
 const video = $("video");
 const snapshot = document.createElement("canvas"), sctx = snapshot.getContext("2d");
 const preprocessCanvas = document.createElement("canvas");
 const pctx = preprocessCanvas.getContext("2d", {willReadFrequently:true});
-const overlayCanvas = document.createElement("canvas"), octx = overlayCanvas.getContext("2d");
-const COLORS = ["#00c27a","#ffd43b","#38d5b5","#71b8ff","#d9a0ff","#ffa257"];
-const OK_COLOR = "#00845a", NO_COLOR = "#d60028";
 const clamp = (v,a,b) => Math.max(a,Math.min(b,v));
-const colorOf = id => COLORS[id % COLORS.length];
-const nameOf = id => CLASS_NAMES[id] || `class_${id}`;
-const labelOf = id => CLASS_LABELS[id] || nameOf(id);
-const rgbOf = id => colorOf(id).match(/[0-9a-f]{2}/gi).map(v=>parseInt(v,16));
-const nextPaint = () => new Promise(resolve=>requestAnimationFrame(resolve));
-let session=null, inputW=640, inputH=640, engine="none", runtimePromise=null;
+const pct = v => (v*100).toFixed(0);
+let models = {id:null, person:null}, engine="none", runtimePromise=null, personWarning="";
 let source=null, stream=null, mediaURL=null, sourceEpoch=0, sourceAbort=null;
 let loading=false, busy=false, inFlight=Promise.resolve(), raf=0, dirty=false;
 let lastStart=0, lastMediaTime=-1, lastCompletion=0, fpsEMA=0;
@@ -387,16 +375,17 @@ function verdict(state,title,detail) {
   $("verdictTitle").textContent=title; $("verdictDetail").textContent=detail;
 }
 function errorText(error) { return error instanceof Error ? error.message : String(error); }
+function setRows(person,personConf,id,idConf,others) {
+  $("rowPerson").textContent=person; $("rowPersonConf").textContent=personConf;
+  $("rowId").textContent=id; $("rowIdConf").textContent=idConf; $("rowOthers").textContent=others;
+}
 function clearMetrics() {
-  ["objects","latency","fps"].forEach(id=>$(id).textContent="–");
-  $("counts").replaceChildren();
-  const p=document.createElement("p"); p.className="hint";
-  p.textContent="Counts are per frame, not unique people tracked across a video.";
-  $("counts").append(p); $("detections").replaceChildren(); $("tableWrap").hidden=true;
-  $("resultMode").textContent="Awaiting inference"; $("renderNote").textContent="";
+  ["idScore","latency","fps"].forEach(id=>$(id).textContent="–");
+  setRows("–","–","–","–","–");
+  $("resultMode").textContent="Awaiting inference"; $("renderNote").textContent=personWarning;
   $("savePng").disabled=$("saveJson").disabled=true; rendered=null;
   framesAnalyzed=0; framesWithId=0; lastCountedTime=null;
-  if(source) verdict("busy","Analyzing…","Running the model on this source.");
+  if(source) verdict("busy","Analyzing…","Running both models on this source.");
   else verdict("idle","Awaiting a source","Choose an image, a video, or the live camera.");
 }
 function runtime() {
@@ -412,88 +401,98 @@ function runtime() {
   }).catch(e=>{runtimePromise=null;throw e;});
   return runtimePromise;
 }
-function metadataOf(s) {
-  const m=s.inputMetadata;
-  return Array.isArray(m) ? m[0] : (m && m[s.inputNames[0]]) || {};
-}
-function configureInput(s) {
-  if(s.inputNames.length!==1) throw new Error("This viewer requires a single image input. Inspect your ONNX export's inputs.");
-  const meta=metadataOf(s), dims=meta.shape || meta.dimensions || meta.dims || [1,3,"height","width"];
+function inputSizeOf(s,label) {
+  if(s.inputNames.length!==1) throw new Error(`${label} must have a single image input.`);
+  const m=s.inputMetadata, meta=(Array.isArray(m)?m[0]:(m&&m[s.inputNames[0]]))||{};
+  const dims=meta.shape || meta.dimensions || meta.dims || [1,3,"height","width"];
   if(dims.length!==4 || (typeof dims[1]==="number" && dims[1]!==3) || (typeof dims[0]==="number" && dims[0]!==1))
-    throw new Error(`Expected a batch-1 NCHW RGB input; received ${JSON.stringify(dims)}.`);
-  if(meta.type && !["float32","float","tensor(float)"].includes(meta.type))
-    throw new Error(`Unsupported input type ${meta.type}. This viewer expects float32 RGB input.`);
-  inputH=Number.isInteger(dims[2])&&dims[2]>0?dims[2]:CONFIG.dynamicInputSize;
-  inputW=Number.isInteger(dims[3])&&dims[3]>0?dims[3]:CONFIG.dynamicInputSize;
-  if(inputW>2048||inputH>2048) throw new Error("Input dimensions exceed this educational viewer's 2048-pixel limit.");
-  preprocessCanvas.width=inputW; preprocessCanvas.height=inputH;
+    throw new Error(`${label}: expected a batch-1 NCHW RGB input; received ${JSON.stringify(dims)}.`);
+  const h=Number.isInteger(dims[2])&&dims[2]>0?dims[2]:CONFIG.dynamicInputSize;
+  const w=Number.isInteger(dims[3])&&dims[3]>0?dims[3]:CONFIG.dynamicInputSize;
+  if(w>2048||h>2048) throw new Error(`${label}: input exceeds the 2048-pixel limit.`);
+  return {w,h};
+}
+async function openSession(ort,url,preferGpu) {
+  if(preferGpu && navigator.gpu) {
+    try { return {session:await ort.InferenceSession.create(url,{executionProviders:["webgpu","wasm"],graphOptimizationLevel:"all"}),gpu:true}; }
+    catch(e) { console.warn(`WebGPU failed for ${url}, attempting WASM`,e); }
+  }
+  return {session:await ort.InferenceSession.create(url,{executionProviders:["wasm"],graphOptimizationLevel:"all"}),gpu:false};
+}
+async function releaseModels() {
+  for(const key of Object.keys(models)) { if(models[key]) await models[key].session.release().catch(()=>{}); models[key]=null; }
 }
 async function loadModel() {
   if(loading) return;
   loading=true; dirty=false; cancelAnimationFrame(raf); raf=0;
   if(source && source.kind!=="image") stopSource();
   $("backend").disabled=true; $("retry").hidden=true; $("camera").disabled=true;
-  clearMetrics();
-  status("Loading model","Downloading ./best.onnx. The first load can take a while.","loading");
+  personWarning=""; clearMetrics();
+  status("Loading models","Downloading best.onnx and person.onnx. The first load can take a while.","loading");
   try {
     const ort=await runtime();
     ort.env.wasm.wasmPaths=CONFIG.runtimeBase;
     ort.env.wasm.numThreads=window.crossOriginIsolated ? Math.min(4,navigator.hardwareConcurrency||1) : 1;
     ort.env.wasm.proxy=false;
-    await inFlight;
-    if(session) { await session.release(); session=null; }
-    const preferred=$("backend").value;
-    let fallbackReason="";
-    if(preferred!=="wasm" && navigator.gpu) {
-      try {
-        session=await ort.InferenceSession.create(MODEL_URL,{executionProviders:["webgpu","wasm"],graphOptimizationLevel:"all"});
-        engine="WebGPU preferred / CPU fallback";
-      } catch(e) {
-        fallbackReason="GPU initialization failed; ";
-        console.warn("WebGPU failed, attempting WASM",e);
-      }
-    } else if(preferred!=="wasm") fallbackReason="WebGPU unavailable; ";
-    if(!session) {
-      status("Loading CPU backend",fallbackReason+"opening the unchanged model with WASM.","loading");
-      session=await ort.InferenceSession.create(MODEL_URL,{executionProviders:["wasm"],graphOptimizationLevel:"all"});
-      engine="WASM / CPU";
+    await inFlight; await releaseModels();
+    const preferGpu=$("backend").value!=="wasm";
+    const id=await openSession(ort,MODELS.id.url,preferGpu);
+    models.id={...id,...inputSizeOf(id.session,MODELS.id.name)};
+    try {
+      const person=await openSession(ort,MODELS.person.url,preferGpu);
+      models.person={...person,...inputSizeOf(person.session,MODELS.person.name)};
+    } catch(e) {
+      console.warn("person.onnx unavailable; boxing ID-card detections only",e);
+      personWarning="person.onnx did not load, so Xid can only box people it sees with an ID card. Upload person.onnx beside index.html for “No ID card” boxes.";
     }
-    configureInput(session);
-    $("modelInfo").textContent=`Model: ${MODEL_URL}\nRuntime: ONNX Runtime Web 1.30.0\nProvider configuration: ${engine}\nInput: ${session.inputNames[0]} [1, 3, ${inputH}, ${inputW}]\nOutputs: ${session.outputNames.join(", ")}\nLabels: ${CLASS_NAMES.join(", ")}\nVerdict rule: "ID card detected" when at least one ${CLASS_NAMES[0]} instance meets the confidence threshold.\nDetection cap: ${CONFIG.maxDetections}; rendered-mask cap: ${CONFIG.maxMasks}\nA GPU-preferred session may execute unsupported operators on CPU.`;
-    status("Model ready",`${engine}. Input ${inputW} × ${inputH}. Choose a source to begin.`);
+    const gpu=models.id.gpu||models.person?.gpu;
+    engine=gpu?"WebGPU preferred / CPU fallback":"WASM / CPU";
+    $("modelInfo").textContent=[
+      `Runtime: ONNX Runtime Web 1.30.0 / ${engine}`,
+      `ID card model: ${MODELS.id.url} [1, 3, ${models.id.h}, ${models.id.w}] → ${models.id.session.outputNames.join(", ")}`,
+      models.person?`Person model: ${MODELS.person.url} [1, 3, ${models.person.h}, ${models.person.w}] → ${models.person.session.outputNames.join(", ")} (class ${MODELS.person.personClass} = person)`:`Person model: not loaded`,
+      `Tag rule: "ID card" when a person_with_id_card detection covers ≥ ${CONFIG.matchOverlap*100}% of the smaller of the two boxes.`
+    ].join("\n");
+    $("renderNote").textContent=personWarning;
+    status(models.person?"Models ready":"ID model only",`${engine}. ${models.person?"Person and ID card models loaded.":"person.onnx is missing."} Choose a source to begin.`,models.person?"ready":"error");
   } catch(e) {
-    if(session) { await session.release().catch(()=>{}); session=null; }
-    engine="none";
+    await releaseModels(); engine="none";
     status("Model unavailable",`${errorText(e)} Ensure best.onnx is beside index.html and served over HTTPS. A Git LFS pointer or an HTML error page is not a model.`,"error");
     verdict("idle","Model unavailable","Xid cannot give a verdict until best.onnx loads.");
     console.error(e);
   } finally {
-    loading=false; $("backend").disabled=false; $("camera").disabled=!session;
-    $("retry").hidden=!!session;
-    if(source && session) {
+    loading=false; $("backend").disabled=false; $("camera").disabled=!models.id;
+    $("retry").hidden=!!models.id;
+    if(source && models.id) {
       if(source.kind==="video") { $("pause").disabled=false; $("pause").textContent=video.paused?"Play":"Pause"; }
       requestInference();
     }
   }
 }
 
-function letterbox(src,w,h) {
-  const ratio=Math.min(inputW/w,inputH/h);
+function letterbox(src,w,h,inW,inH) {
+  const ratio=Math.min(inW/w,inH/h);
   const nw=Math.max(1,Math.round(w*ratio)), nh=Math.max(1,Math.round(h*ratio));
-  const px=Math.floor((inputW-nw)/2), py=Math.floor((inputH-nh)/2);
-  pctx.fillStyle="rgb(114,114,114)"; pctx.fillRect(0,0,inputW,inputH);
+  const px=Math.floor((inW-nw)/2), py=Math.floor((inH-nh)/2);
+  preprocessCanvas.width=inW; preprocessCanvas.height=inH;
+  pctx.fillStyle="rgb(114,114,114)"; pctx.fillRect(0,0,inW,inH);
   pctx.drawImage(src,0,0,w,h,px,py,nw,nh);
-  const bytes=pctx.getImageData(0,0,inputW,inputH).data, area=inputW*inputH;
+  const bytes=pctx.getImageData(0,0,inW,inH).data, area=inW*inH;
   const chw=new Float32Array(3*area);
   for(let i=0;i<area;i++) {
     chw[i]=bytes[4*i]/255; chw[area+i]=bytes[4*i+1]/255; chw[2*area+i]=bytes[4*i+2]/255;
   }
-  return {tensor:new ort.Tensor("float32",chw,[1,3,inputH,inputW]),px,py,nw,nh};
+  return {tensor:new ort.Tensor("float32",chw,[1,3,inH,inW]),px,py,nw,nh,inW,inH};
 }
 function boxIoU(a,b) {
   const inter=Math.max(0,Math.min(a.x2,b.x2)-Math.max(a.x1,b.x1))*Math.max(0,Math.min(a.y2,b.y2)-Math.max(a.y1,b.y1));
   const union=(a.x2-a.x1)*(a.y2-a.y1)+(b.x2-b.x1)*(b.y2-b.y1)-inter;
   return union>0 ? inter/union : 0;
+}
+function overlapOfSmaller(a,b) {
+  const inter=Math.max(0,Math.min(a.x2,b.x2)-Math.max(a.x1,b.x1))*Math.max(0,Math.min(a.y2,b.y2)-Math.max(a.y1,b.y1));
+  const smaller=Math.min((a.x2-a.x1)*(a.y2-a.y1),(b.x2-b.x1)*(b.y2-b.y1));
+  return smaller>0 ? inter/smaller : 0;
 }
 function nms(boxes,threshold) {
   const kept=[];
@@ -503,158 +502,76 @@ function nms(boxes,threshold) {
   }
   return kept;
 }
-function parseOutputs(out,confidence,nmsThreshold) {
-  const tensors=Object.entries(out);
-  const candidates=tensors.filter(([,t])=>t.dims.length===3 && t.dims[0]===1);
-  const prototypes=tensors.filter(([,t])=>t.dims.length===4 && t.dims[0]===1);
-  const det=CONFIG.detectionOutput ? out[CONFIG.detectionOutput] : (candidates.length===1 ? candidates[0][1] : null);
-  const proto=CONFIG.prototypeOutput ? out[CONFIG.prototypeOutput] : (prototypes.length===1 ? prototypes[0][1] : null);
-  const shapes=tensors.map(([n,t])=>`${n}: [${t.dims}]`).join("; ");
-  if(!det) throw new Error(`Cannot uniquely identify the detection output. Set CONFIG.detectionOutput. ${shapes}`);
-  if(prototypes.length>1&&!CONFIG.prototypeOutput) throw new Error(`Multiple prototype candidates; set CONFIG.prototypeOutput. ${shapes}`);
-  if(proto && (proto.dims[1]<1||proto.dims[1]>256||proto.dims[2]<2||proto.dims[3]<2))
-    throw new Error(`Expected NCHW mask prototypes. ${shapes}`);
-  if(det.type && det.type!=="float32") throw new Error(`Unsupported detection output type ${det.type}; expected float32.`);
-  if(proto?.type && proto.type!=="float32") throw new Error(`Unsupported prototype type ${proto.type}; expected float32.`);
+/* Decodes a raw YOLOv8 head ([1, 4+nc+nm, N]) into letterbox-space boxes.
+   nm is the mask-coefficient count (0 for a detect-only model). */
+function parseBoxes(out,confidence,nmsThreshold,lb,onlyClass=null) {
+  const tensors=Object.values(out);
+  const det=tensors.find(t=>t.dims.length===3&&t.dims[0]===1), proto=tensors.find(t=>t.dims.length===4&&t.dims[0]===1);
+  if(!det) throw new Error(`No [1, C, N] detection output found: ${tensors.map(t=>`[${t.dims}]`).join("; ")}`);
   const nm=proto?proto.dims[1]:0, [,a,b]=det.dims, values=det.data;
-  let format=CONFIG.outputFormat, nc=0, count=0, at;
-  if(format==="auto") {
-    if(b===6+nm) {
-      // A transposed raw TWO-CLASS head has the same feature count as an
-      // end-to-end head. Check the class-ID column rather than shape alone.
-      let looksEndToEnd=true;
-      for(let i=0;i<a;i++) {
-        const score=values[i*b+4],label=values[i*b+5];
-        if(score>=confidence && (!Number.isInteger(label)||label<0||label>10000)) {
-          looksEndToEnd=false;break;
-        }
-      }
-      format=looksEndToEnd?"end2end":"raw-channels-last";
-    }
-    else if(a>=5+nm && a<b) format="raw-channels-first";
-    else if(b>=5+nm && b<a) format="raw-channels-last";
-    else throw new Error(`Unsupported or ambiguous detection shape. Set CONFIG.outputFormat for your export. ${shapes}`);
-  }
+  const first=a<b, count=first?b:a, nc=(first?a:b)-4-nm;
+  if(nc<1||nc>1000) throw new Error(`Unexpected detection shape [${det.dims}].`);
+  const at=first?(i,j)=>values[j*b+i]:(i,j)=>values[i*b+j];
   let rows=[];
-  if(format==="end2end") {
-    if(b!==6+nm) throw new Error(`End-to-end output must contain 6 + ${nm} mask coefficients. ${shapes}`);
-    count=a; at=(i,j)=>values[i*b+j];
-  } else if(format==="raw-channels-first"||format==="raw-channels-last") {
-    const first=format==="raw-channels-first"; count=first?b:a; nc=(first?a:b)-4-nm;
-    if(nc<1||nc>1000) throw new Error(`Invalid inferred class count ${nc}. ${shapes}`);
-    at=first?(i,j)=>values[j*b+i]:(i,j)=>values[i*b+j];
-  } else throw new Error("Unknown CONFIG.outputFormat.");
   for(let i=0;i<count;i++) {
     let score=-Infinity, cls=-1;
-    if(format==="end2end") { score=at(i,4); cls=at(i,5); }
+    if(onlyClass!==null) { score=at(i,4+onlyClass); cls=onlyClass; }
     else for(let c=0;c<nc;c++) { const v=at(i,4+c); if(v>score) { score=v; cls=c; } }
     if(!Number.isFinite(score)||score<confidence) continue;
-    if(score>1.0001 || !Number.isInteger(cls)||cls<0||cls>10000)
-      throw new Error("Unexpected confidence or class values. Check the output layout; this viewer supports YOLO-style probabilities without a separate objectness channel.");
-    let x1=at(i,0),y1=at(i,1),x2=at(i,2),y2=at(i,3);
-    if(format!=="end2end") { const cx=x1,cy=y1,w=x2,h=y2; x1=cx-w/2; x2=cx+w/2; y1=cy-h/2; y2=cy+h/2; }
-    if(CONFIG.boxCoordinates==="normalized") { x1*=inputW; x2*=inputW; y1*=inputH; y2*=inputH; }
-    if(![x1,y1,x2,y2].every(Number.isFinite)||x2<=x1||y2<=y1) continue;
-    x1=clamp(x1,0,inputW);x2=clamp(x2,0,inputW);y1=clamp(y1,0,inputH);y2=clamp(y2,0,inputH);
+    const cx=at(i,0),cy=at(i,1),w=at(i,2),h=at(i,3);
+    const x1=clamp(cx-w/2,0,lb.inW),x2=clamp(cx+w/2,0,lb.inW),y1=clamp(cy-h/2,0,lb.inH),y2=clamp(cy+h/2,0,lb.inH);
     if(x2<=x1||y2<=y1) continue;
-    const coef=new Float32Array(nm), offset=format==="end2end"?6:4+nc;
-    for(let k=0;k<nm;k++) coef[k]=at(i,offset+k);
-    if(!coef.every(Number.isFinite)) throw new Error("Non-finite mask coefficients were returned by the model.");
-    rows.push({x1,y1,x2,y2,score:Math.min(score,1),cls,coef});
+    rows.push({x1,y1,x2,y2,score:Math.min(score,1),cls});
   }
   rows.sort((x,y)=>y.score-x.score);
-  const truncatedCandidates=rows.length>CONFIG.maxCandidates;
-  rows=rows.slice(0,CONFIG.maxCandidates);
-  const detections=format==="end2end"?rows.slice(0,CONFIG.maxDetections):nms(rows,nmsThreshold);
-  return {detections,proto,format,shapes,truncatedCandidates};
+  return nms(rows.slice(0,CONFIG.maxCandidates),nmsThreshold);
 }
-function mapBox(d,m,w,h) {
-  return {
-    x1:clamp((d.x1-m.px)*w/m.nw,0,w), y1:clamp((d.y1-m.py)*h/m.nh,0,h),
-    x2:clamp((d.x2-m.px)*w/m.nw,0,w), y2:clamp((d.y2-m.py)*h/m.nh,0,h)
+/* Letterbox space → source-image pixels. */
+function toImage(d,lb,w,h) {
+  const box={
+    x1:clamp((d.x1-lb.px)*w/lb.nw,0,w), y1:clamp((d.y1-lb.py)*h/lb.nh,0,h),
+    x2:clamp((d.x2-lb.px)*w/lb.nw,0,w), y2:clamp((d.y2-lb.py)*h/lb.nh,0,h), score:d.score
   };
+  return box.x2>box.x1&&box.y2>box.y1 ? box : null;
 }
-async function renderMasks(result,m,w,h,epoch,settings) {
-  overlayCanvas.width=w; overlayCanvas.height=h;
-  if(!result.proto||!settings.showMasks) return true;
-  const [,nm,ph,pw]=result.proto.dims, area=pw*ph, P=result.proto.data;
-  const image=octx.createImageData(w,h), rgba=image.data, alpha=Math.round(settings.opacity*255);
-  const list=result.detections.slice(0,CONFIG.maxMasks);
-  // Lower confidence first, so stronger masks are not overwritten by weaker ones.
-  for(let di=list.length-1;di>=0;di--) {
-    if(epoch!==sourceEpoch) return false;
-    const d=list[di], logits=new Float32Array(area), [red,green,blue]=rgbOf(d.cls);
-    const x0=clamp(Math.ceil(d.x1*pw/inputW),0,pw), x1=clamp(Math.ceil(d.x2*pw/inputW),0,pw);
-    const y0=clamp(Math.ceil(d.y1*ph/inputH),0,ph), y1=clamp(Math.ceil(d.y2*ph/inputH),0,ph);
-    for(let k=0;k<nm;k++) {
-      const a=d.coef[k], off=k*area;
-      for(let y=y0;y<y1;y++) for(let x=x0;x<x1;x++) {
-        const j=y*pw+x; logits[j]+=a*P[off+j];
-      }
-    }
-    const box=mapBox(d,m,w,h);
-    const startX=Math.max(0,Math.floor(box.x1)),endX=Math.min(w,Math.ceil(box.x2));
-    const startY=Math.max(0,Math.floor(box.y1)),endY=Math.min(h,Math.ceil(box.y2));
-    // Interpolate logits BEFORE thresholding; separate x/y scales support
-    // rectangular inputs/prototypes.
-    for(let y=startY;y<endY;y++) {
-      const fy=clamp(((y+.5)*m.nh/h+m.py)*ph/inputH-.5,0,ph-1);
-      const ya=Math.floor(fy),yb=Math.min(ya+1,ph-1),wy=fy-ya;
-      for(let x=startX;x<endX;x++) {
-        const fx=clamp(((x+.5)*m.nw/w+m.px)*pw/inputW-.5,0,pw-1);
-        const xa=Math.floor(fx),xb=Math.min(xa+1,pw-1),wx=fx-xa;
-        const top=logits[ya*pw+xa]*(1-wx)+logits[ya*pw+xb]*wx;
-        const bottom=logits[yb*pw+xa]*(1-wx)+logits[yb*pw+xb]*wx;
-        if(top*(1-wy)+bottom*wy>0) {
-          const j=(y*w+x)*4; rgba[j]=red;rgba[j+1]=green;rgba[j+2]=blue;rgba[j+3]=alpha;
-        }
-      }
-    }
-    if(di%4===0) await nextPaint();
+/* One box per frame: the largest person, tagged by whether an ID card overlaps them. */
+function decide(people,idCards) {
+  const area=b=>(b.x2-b.x1)*(b.y2-b.y1);
+  if(people.length) {
+    const main=people.reduce((p,q)=>area(q)>area(p)?q:p);
+    const match=idCards.filter(c=>overlapOfSmaller(main,c)>=CONFIG.matchOverlap).sort((x,y)=>y.score-x.score)[0]||null;
+    return {box:main,hasId:!!match,idScore:match?match.score:null,personScore:main.score,boxFrom:"person",others:people.length-1};
   }
-  if(epoch!==sourceEpoch) return false;
-  octx.putImageData(image,0,0); return true;
+  if(idCards.length) return {box:idCards[0],hasId:true,idScore:idCards[0].score,personScore:null,boxFrom:"id",others:0};
+  return {box:null,hasId:false,idScore:null,personScore:null,boxFrom:null,others:0};
 }
-function paintResult(result,m,settings) {
+function paintResult(r) {
   const w=snapshot.width,h=snapshot.height;
   if(canvas.width!==w||canvas.height!==h) { canvas.width=w;canvas.height=h; }
   ctx.drawImage(snapshot,0,0);
-  if(settings.showMasks) ctx.drawImage(overlayCanvas,0,0);
-  if(settings.showBoxes) {
-    const fs=Math.max(14,Math.round(w/70)); ctx.font=`600 ${fs}px Arial,sans-serif`;ctx.lineWidth=Math.max(2,w/500);
-    for(const d of result.detections) {
-      const b=mapBox(d,m,w,h); if(b.x2<=b.x1||b.y2<=b.y1) continue;
-      ctx.strokeStyle=colorOf(d.cls);ctx.strokeRect(b.x1,b.y1,b.x2-b.x1,b.y2-b.y1);
-      const label=`ID card ${(100*d.score).toFixed(0)}%`;
-      const tw=Math.min(w,ctx.measureText(label).width+12), th=fs+10;
-      const x=clamp(b.x1,0,Math.max(0,w-tw)),y=clamp(b.y1-th,0,Math.max(0,h-th));
-      ctx.fillStyle="#111";ctx.fillRect(x,y,tw,th);
-      ctx.fillStyle="#fff";ctx.fillText(label,x+6,y+fs+2,Math.max(1,tw-12));
-    }
+  if(r.box) {
+    const b={x1:r.box.x1*w/r.srcW,y1:r.box.y1*h/r.srcH,x2:r.box.x2*w/r.srcW,y2:r.box.y2*h/r.srcH};
+    const color=r.hasId?OK_COLOR:NO_COLOR;
+    ctx.lineWidth=Math.max(3,w/250); ctx.strokeStyle=color;
+    ctx.strokeRect(b.x1,b.y1,b.x2-b.x1,b.y2-b.y1);
+    const fs=Math.max(16,Math.round(w/45)); ctx.font=`700 ${fs}px Arial,sans-serif`;
+    const tag=r.hasId?`✓ ID CARD ${pct(r.idScore)}%`:"✕ NO ID CARD";
+    const tw=Math.min(w,ctx.measureText(tag).width+20), th=fs+14;
+    const x=clamp(b.x1-ctx.lineWidth/2,0,Math.max(0,w-tw));
+    const y=b.y1-th>=0?b.y1-th:clamp(b.y1,0,Math.max(0,h-th)); // Above the box, or just inside when the box touches the top edge.
+    ctx.fillStyle=color;ctx.fillRect(x,y,tw,th);
+    ctx.fillStyle="#fff";ctx.fillText(tag,x+10,y+fs+4,Math.max(1,tw-20));
+  } else {
+    const fs=Math.max(14,Math.round(w/55)); ctx.font=`700 ${fs}px Arial,sans-serif`;
+    const stamp="NO PERSON DETECTED", sw=ctx.measureText(stamp).width+24;
+    ctx.fillStyle="#111";ctx.fillRect(w-sw,0,sw,fs+16);ctx.fillStyle="#fff";ctx.fillText(stamp,w-sw+12,fs+6);
   }
-  // Stamp the verdict on the frame so a saved PNG carries its own answer.
-  const has=result.detections.length>0, stamp=has?"✓ ID CARD DETECTED":"✕ NO ID CARD DETECTED";
-  const vs=Math.max(14,Math.round(w/55)); ctx.font=`700 ${vs}px Arial,sans-serif`;
-  const sw=ctx.measureText(stamp).width+24, sh=vs+16;
-  ctx.fillStyle=has?OK_COLOR:NO_COLOR;ctx.fillRect(w-sw,0,sw,sh);
-  ctx.fillStyle="#fff";ctx.fillText(stamp,w-sw+12,vs+6);
   ctx.font=`${Math.max(12,Math.round(w/95))}px Arial,sans-serif`;
   const credit="Xid / Educational use only", cw=ctx.measureText(credit).width;
   ctx.fillStyle="#111";ctx.fillRect(0,h-28,cw+16,28);ctx.fillStyle="#fff";ctx.fillText(credit,8,h-9);
   $("empty").hidden=true;canvas.hidden=false;
 }
-function updateVerdict(result,captured,mediaTime,settings) {
-  const n=result.detections.length, best=n?Math.max(...result.detections.map(d=>d.score)):0;
-  if(captured.kind!=="image" && mediaTime!==lastCountedTime) {
-    lastCountedTime=mediaTime; framesAnalyzed++; if(n) framesWithId++;
-  }
-  const history=captured.kind==="image"?"":` ID card seen in ${framesWithId} of ${framesAnalyzed} analyzed frames.`;
-  if(n) verdict("yes","ID card detected",`${n} ${n===1?"person":"people"} with a visible ID card · top confidence ${(best*100).toFixed(0)}%.${history}`);
-  else verdict("no","No ID card detected",`Nothing scored at or above ${settings.confidence.toFixed(2)} confidence.${history}`);
-}
-function updateInventory(result,elapsed,captured,mediaTime,m,settings) {
-  $("objects").textContent=result.detections.length;
-  $("latency").textContent=elapsed.toFixed(0);
+function updateInventory(r,elapsed,captured,mediaTime,settings) {
   const now=performance.now();
   if(captured.kind!=="image") {
     if(lastCompletion) {
@@ -662,83 +579,79 @@ function updateInventory(result,elapsed,captured,mediaTime,m,settings) {
       fpsEMA=fpsEMA?fpsEMA*.75+instantaneous*.25:instantaneous;
     }
     lastCompletion=now;
+    if(mediaTime!==lastCountedTime) { lastCountedTime=mediaTime; framesAnalyzed++; if(r.hasId) framesWithId++; }
   }
+  $("idScore").textContent=r.idScore!==null?pct(r.idScore):"–";
+  $("latency").textContent=elapsed.toFixed(0);
   $("fps").textContent=captured.kind==="image"||!fpsEMA?"–":fpsEMA.toFixed(1);
-  $("resultMode").textContent=result.proto?"Instance segmentation":"Boxes only";
+  $("resultMode").textContent=models.person?"Person + ID card models":"ID card model only";
   $("stageLabel").textContent=captured.kind==="image"?"IMAGE / ANALYZED":`${captured.kind==="camera"?"LIVE":"VIDEO"} / ${formatTime(mediaTime)}`;
   $("stageLabel").hidden=false;
-  updateVerdict(result,captured,mediaTime,settings);
-  const counts=new Map();
-  result.detections.forEach(d=>counts.set(d.cls,(counts.get(d.cls)||0)+1));
-  const countNodes=[];
-  for(const [id,count] of counts) {
-    const span=document.createElement("span");span.className="count";
-    const swatch=document.createElement("i");swatch.className="swatch";swatch.style.background=colorOf(id);swatch.setAttribute("aria-hidden","true");
-    span.append(swatch,document.createTextNode(`${labelOf(id)}: ${count}`));countNodes.push(span);
-  }
-  if(!counts.size) { const p=document.createElement("p");p.className="hint";p.textContent="No ID card above this threshold. This does not prove the person has none: it may be hidden, turned away, or too small to see.";countNodes.push(p); }
-  $("counts").replaceChildren(...countNodes);
-  const rows=result.detections.map((d,i)=>{
-    const tr=document.createElement("tr");
-    for(const t of [String(i+1).padStart(2,"0"),labelOf(d.cls),`${(d.score*100).toFixed(1)}%`]) {
-      const td=document.createElement("td");td.textContent=t;tr.append(td);
-    }
-    return tr;
-  });
-  $("detections").replaceChildren(...rows);$("tableWrap").hidden=!rows.length;
-  const end2end=result.format==="end2end";$("iou").disabled=end2end;
-  $("nmsHint").textContent=end2end?"End-to-end export detected. Additional NMS is not applied.":"Merges duplicate boxes on the same person.";
-  const notes=[];
-  if(!result.proto) notes.push("No mask prototype output found; showing boxes only.");
-  if(result.detections.length>CONFIG.maxMasks && settings.showMasks) notes.push(`Only the ${CONFIG.maxMasks} highest-confidence masks are rendered; all listed boxes are retained.`);
-  if(result.truncatedCandidates) notes.push(`Raw candidates were capped at ${CONFIG.maxCandidates} for browser responsiveness.`);
-  if(result.detections.length===CONFIG.maxDetections) notes.push(`Display limit: ${CONFIG.maxDetections} instances.`);
-  $("renderNote").textContent=notes.join(" ");
+  const history=captured.kind==="image"?"":` ID card seen in ${framesWithId} of ${framesAnalyzed} analyzed frames.`;
+  if(!r.box) verdict("idle","No person detected",`Xid needs one visible person in the frame.${history}`);
+  else if(r.hasId) verdict("yes","ID card",`The boxed person carries a visible ID card · confidence ${pct(r.idScore)}%.${history}`);
+  else verdict("no","No ID card",`No ID card scored at or above ${settings.confidence.toFixed(2)} on the boxed person.${history}`);
+  setRows(
+    r.box?(r.boxFrom==="person"?"Boxed":"Boxed from ID card detection"):"Not found",
+    r.personScore!==null?`${(r.personScore*100).toFixed(1)}%`:"–",
+    r.box?(r.hasId?"Yes":"No"):"–",
+    r.idScore!==null?`${(r.idScore*100).toFixed(1)}%`:"–",
+    models.person?String(r.others):"unknown"
+  );
+  $("renderNote").textContent=personWarning;
   rendered={
-    app:"Xid",usage:"Educational purposes only",model:MODEL_URL,providerConfiguration:engine,
-    capturedAt:new Date().toISOString(),sourceType:captured.kind,sourceName:captured.name,
+    app:"Xid",usage:"Educational purposes only",models:{id:MODELS.id.url,person:models.person?MODELS.person.url:null},
+    providerConfiguration:engine,capturedAt:new Date().toISOString(),sourceType:captured.kind,sourceName:captured.name,
     sourceWidth:captured.width,sourceHeight:captured.height,videoTimeSeconds:mediaTime,
-    verdict:result.detections.length?"id_card_detected":"no_id_card_detected",
-    inputWidth:inputW,inputHeight:inputH,displayWidth:canvas.width,displayHeight:canvas.height,
-    confidenceThreshold:settings.confidence,nmsIoU:end2end?null:settings.iou,
-    outputFormat:result.format,outputShapes:result.shapes,
-    maskDisplay:"Prototype-logit visualization at display resolution; binary masks are not included in this JSON.",
-    detections:result.detections.map(d=>({classId:d.cls,className:nameOf(d.cls),confidence:d.score,
-      boxXYXY:Object.values(mapBox(d,m,captured.width,captured.height))}))
+    verdict:!r.box?"no_person_detected":r.hasId?"id_card":"no_id_card",
+    personConfidenceThreshold:settings.personConf,idCardConfidenceThreshold:settings.confidence,nmsIoU:settings.iou,
+    box:r.box?{xyxy:[r.box.x1,r.box.y1,r.box.x2,r.box.y2],from:r.boxFrom}:null,
+    personConfidence:r.personScore,idCardConfidence:r.idScore,otherPeopleInFrame:models.person?r.others:null
   };
   if(captured.kind!=="image") Object.assign(rendered,{framesAnalyzed,framesWithIdCard:framesWithId});
   $("savePng").disabled=$("saveJson").disabled=false;
 }
 
 function schedule() { if(!raf) raf=requestAnimationFrame(tick); }
-function requestInference() { dirty=true; if(session&&!loading&&source) schedule(); }
+function requestInference() { dirty=true; if(models.id&&!loading&&source) schedule(); }
 async function tick(now) {
   raf=0;
-  if(busy||loading||!session||!source||document.hidden) return;
+  if(busy||loading||!models.id||!source||document.hidden) return;
   const moving=source.kind!=="image"&&!video.paused&&!video.ended;
   if(!moving&&!dirty) return;
   if(source.kind!=="image"&&(video.readyState<2||video.seeking)) { if(moving||dirty) schedule(); return; }
   if(moving&&!dirty&&(now-lastStart<1000/+$("maxFps").value || video.currentTime===lastMediaTime)) { schedule();return; }
   busy=true; dirty=false; lastStart=now;
-  const epoch=sourceEpoch,captured={...source},currentSession=session,mediaTime=captured.kind==="image"?null:video.currentTime;
-  const settings={confidence:+$("conf").value,iou:+$("iou").value,opacity:+$("opacity").value,showMasks:$("showMasks").checked,showBoxes:$("showBoxes").checked};
+  const epoch=sourceEpoch,captured={...source},current={...models},mediaTime=captured.kind==="image"?null:video.currentTime;
+  const settings={confidence:+$("conf").value,personConf:+$("personConf").value,iou:+$("iou").value};
   lastMediaTime=mediaTime;
   let finish; inFlight=new Promise(resolve=>finish=resolve);
-  let tensor=null, outputs=null, failure=false;
+  const disposables=[]; let failure=false;
   try {
     const t0=performance.now(),src=captured.kind==="image"?captured.image:video;
     const ratio=Math.min(1,CONFIG.displayMaxSide/Math.max(captured.width,captured.height));
     snapshot.width=Math.max(1,Math.round(captured.width*ratio));snapshot.height=Math.max(1,Math.round(captured.height*ratio));
     sctx.drawImage(src,0,0,snapshot.width,snapshot.height); // Capture once; never draw a newer video frame after inference.
-    const m=letterbox(snapshot,snapshot.width,snapshot.height);tensor=m.tensor;
-    outputs=await currentSession.run({[currentSession.inputNames[0]]:tensor});
-    if(epoch!==sourceEpoch||loading||currentSession!==session) return;
-    const result=parseOutputs(outputs,settings.confidence,settings.iou);
-    result.detections=result.detections.filter(d=>{const b=mapBox(d,m,captured.width,captured.height);return b.x2>b.x1&&b.y2>b.y1;});
-    if(!await renderMasks(result,m,snapshot.width,snapshot.height,epoch,settings)) return;
-    if(epoch!==sourceEpoch||loading||currentSession!==session) return;
-    paintResult(result,m,settings);
-    updateInventory(result,performance.now()-t0,captured,mediaTime,m,settings);
+    const sw=snapshot.width, sh=snapshot.height;
+    const run=async(model,lb)=>{const out=await model.session.run({[model.session.inputNames[0]]:lb.tensor});disposables.push(...Object.values(out));return out;};
+    const idLb=letterbox(snapshot,sw,sh,current.id.w,current.id.h); disposables.push(idLb.tensor);
+    const idOut=await run(current.id,idLb);
+    let personLb=null, personOut=null;
+    if(current.person) {
+      personLb=current.person.w===idLb.inW&&current.person.h===idLb.inH?idLb:letterbox(snapshot,sw,sh,current.person.w,current.person.h);
+      if(personLb!==idLb) disposables.push(personLb.tensor);
+      personOut=await run(current.person,personLb);
+    }
+    if(epoch!==sourceEpoch||loading||current.id!==models.id) return;
+    const idCards=parseBoxes(idOut,settings.confidence,settings.iou,idLb).map(d=>toImage(d,idLb,sw,sh)).filter(Boolean);
+    const people=personOut?parseBoxes(personOut,settings.personConf,settings.iou,personLb,MODELS.person.personClass).map(d=>toImage(d,personLb,sw,sh)).filter(Boolean):[];
+    const r=decide(people,idCards);
+    // Report the box in original source pixels; paint it in snapshot pixels.
+    const scale=captured.width/sw;
+    if(r.box) r.box={...r.box,x1:r.box.x1*scale,y1:r.box.y1*scale,x2:r.box.x2*scale,y2:r.box.y2*scale};
+    r.srcW=captured.width; r.srcH=captured.height;
+    paintResult(r);
+    updateInventory(r,performance.now()-t0,captured,mediaTime,settings);
     const paused=captured.kind!=="image"&&video.paused;
     status(paused?"Analysis paused":"Analysis active",paused
       ? (captured.kind==="camera"?"Preview paused; the camera is still active. Use Stop live camera to release it.":"Video paused. Resume or seek to inspect another frame.")
@@ -753,10 +666,9 @@ async function tick(now) {
       console.error(e);
     }
   } finally {
-    tensor?.dispose?.();
-    if(outputs) for(const output of new Set(Object.values(outputs))) output.dispose?.();
+    for(const t of new Set(disposables)) t?.dispose?.();
     busy=false;finish();
-    if(!failure && session&&!loading&&source && (dirty||(source.kind!=="image"&&!video.paused&&!video.ended))) schedule();
+    if(!failure && models.id&&!loading&&source && (dirty||(source.kind!=="image"&&!video.paused&&!video.ended))) schedule();
   }
 }
 
@@ -771,7 +683,7 @@ function stopSource(clear=true) {
   if(clear) {
     canvas.hidden=true;$("empty").hidden=false;$("stageLabel").hidden=true;
     $("filename").textContent="No source selected";clearMetrics();
-    if(session&&!loading) status("Model ready","Source cleared. Choose an image, video, or camera.");
+    if(models.id&&!loading) status("Models ready","Source cleared. Choose an image, video, or camera.");
   }
 }
 function switchMode(mode,clear=true) {
@@ -822,15 +734,15 @@ async function handleFile(file) {
       if(epoch!==sourceEpoch) return;
       source={kind:"video",width:video.videoWidth,height:video.videoHeight,name:file.name};
       $("scrubber").hidden=false;preview(video,source.width,source.height);
-      $("pause").disabled=!session;$("pause").textContent=session?"Pause":"Play";
-      if(session&&!loading) {
+      $("pause").disabled=!models.id;$("pause").textContent=models.id?"Pause":"Play";
+      if(models.id&&!loading) {
         try { await video.play(); } catch { $("pause").textContent="Play"; }
       }
     }
     if(epoch!==sourceEpoch) return;
     $("stop").disabled=false;clearMetrics();
-    if(session&&!loading) requestInference();
-    else if(!loading) status("Preview only","The source is local. Load the model successfully to analyze it.","error");
+    if(models.id&&!loading) requestInference();
+    else if(!loading) status("Preview only","The source is local. Load the models successfully to analyze it.","error");
   } catch(e) {
     if(epoch===sourceEpoch && e.name!=="AbortError") {
       stopSource();status("Source unavailable",errorText(e),"error");
@@ -839,7 +751,7 @@ async function handleFile(file) {
 }
 async function startCamera() {
   if(stream || (sourceAbort&&selectedMode==="camera"&&!source)) { stopSource();return; }
-  if(!session||loading) { status("Model required","Load best.onnx before starting live inference.","error");return; }
+  if(!models.id||loading) { status("Model required","Load best.onnx before starting live inference.","error");return; }
   if(!window.isSecureContext || !navigator.mediaDevices?.getUserMedia) {
     status("Camera unavailable","Open this page through HTTPS or localhost in a browser that supports camera access. Embedded previews may block camera permission.","error");return;
   }
@@ -882,9 +794,9 @@ for(const id of ["drop","stage"]) {
 }
 $("camera").addEventListener("click",startCamera);
 $("facing").addEventListener("change",()=>{if(stream) {stopSource();startCamera();}});
-$("stop").addEventListener("click",()=>{stopSource();if(session)status("Model ready","Source cleared. Choose another image, video, or camera.");});
+$("stop").addEventListener("click",()=>{stopSource();if(models.id)status("Models ready","Source cleared. Choose another image, video, or camera.");});
 $("pause").addEventListener("click",async()=>{
-  if(!source||source.kind==="image"||!session) return;
+  if(!source||source.kind==="image"||!models.id) return;
   if(video.paused||video.ended) {
     if(video.ended) video.currentTime=0;
     try { await video.play();$("pause").textContent="Pause";lastCompletion=0;requestInference(); }
@@ -910,18 +822,18 @@ $("seek").addEventListener("change",()=>{
   seeking=false;requestInference();
 });
 video.addEventListener("seeked",requestInference);
-for(const id of ["conf","iou","opacity"]) $(id).addEventListener("input",()=>{
-  $(id+"Value").textContent=id==="opacity"?`${Math.round(+$(id).value*100)}%`:(+$(id).value).toFixed(2);
+for(const id of ["conf","personConf","iou"]) $(id).addEventListener("input",()=>{
+  $(id+"Value").textContent=(+$(id).value).toFixed(2);
   clearTimeout(sliderTimer);sliderTimer=setTimeout(requestInference,120);
 });
-for(const id of ["showMasks","showBoxes","maxFps"]) $(id).addEventListener("change",requestInference);
+$("maxFps").addEventListener("change",requestInference);
 $("backend").addEventListener("change",loadModel);$("retry").addEventListener("click",loadModel);
 $("savePng").addEventListener("click",()=>{
   if(!rendered) return;
   canvas.toBlob(blob=>{if(blob)download(blob,"Xid-educational-frame.png");},"image/png");
 });
 $("saveJson").addEventListener("click",()=>{
-  if(rendered) download(new Blob([JSON.stringify(rendered,null,2)],{type:"application/json"}),"Xid-frame-detections.json");
+  if(rendered) download(new Blob([JSON.stringify(rendered,null,2)],{type:"application/json"}),"Xid-frame-result.json");
 });
 document.addEventListener("visibilitychange",()=>{
   if(document.hidden) {cancelAnimationFrame(raf);raf=0;}
