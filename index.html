@@ -1,0 +1,917 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="description" content="Xid: an educational, browser-based detector that boxes one person and tags whether they carry a visible ID card, on images, video, and live cameras.">
+<meta name="color-scheme" content="light dark">
+<title>Xid | ID card detection</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --cols:12; --bl:8px; --lh:24px; --gutter:24px; --margin:48px; --maxw:1440px;
+  --paper:#fff; --ink:#151515; --muted:#606060; --line:#d5d5d5;
+  --panel:#f4f4f4; --accent:#d60028; --accent-soft:#fff0f2;
+  --ok:#00845a; --ok-soft:#e9f7f1;
+  --sans:"Archivo","Helvetica Neue",Arial,sans-serif;
+  --mono:"IBM Plex Mono",Consolas,monospace;
+  --small:12px; --body:16px; --title:24px; --display:80px;
+  --s1:8px; --s2:16px; --s3:24px; --s4:32px; --s6:48px; --s8:64px;
+}
+[data-theme=dark] {
+  color-scheme:dark;
+  --paper:#151515; --ink:#f4f4f4; --muted:#b6b6b6; --line:#454545;
+  --panel:#202020; --accent:#ff536f; --accent-soft:#311d21;
+  --ok:#35d39a; --ok-soft:#14291f;
+}
+[data-theme=light] { color-scheme:light; }
+*,*::before,*::after { box-sizing:border-box; }
+body,h1,h2,h3,p,figure { margin:0; }
+html { -webkit-font-smoothing:antialiased; scroll-padding-top:24px; }
+body { background:var(--paper); color:var(--ink); font:var(--body)/var(--lh) var(--sans); }
+button,input,select { font:inherit; color:inherit; }
+button,select,input[type=range],input[type=checkbox] { cursor:pointer; }
+button { border:1px solid var(--line); background:var(--paper); min-height:48px; padding:var(--s1) var(--s2); font-weight:600; }
+button:hover:not(:disabled) { background:var(--panel); border-color:var(--ink); }
+button:disabled { opacity:.45; cursor:not-allowed; }
+button.primary { background:var(--accent); border-color:var(--accent); color:#fff; }
+[data-theme=dark] button.primary { color:#111; }
+button.primary:hover:not(:disabled) { filter:brightness(.9); background:var(--accent); }
+:focus-visible { outline:3px solid var(--accent); outline-offset:4px; }
+a { color:inherit; text-underline-offset:4px; }
+button,select { transition:background 120ms,border-color 120ms; }
+[hidden] { display:none!important; }
+.skip { position:fixed; left:16px; top:-80px; background:var(--paper); padding:16px; z-index:30; }
+.skip:focus { top:8px; }
+.wrap { position:relative; max-width:var(--maxw); padding:0 var(--margin); margin:auto; }
+.grid { display:grid; grid-template-columns:repeat(var(--cols),minmax(0,1fr)); column-gap:var(--gutter); }
+.band { grid-column:1/-1; display:grid; grid-template-columns:subgrid; column-gap:var(--gutter); align-items:start; }
+@supports not (grid-template-columns:subgrid) { .band { grid-template-columns:repeat(var(--cols),minmax(0,1fr)); } }
+.mono,.kicker,.eyebrow { font:var(--small)/var(--lh) var(--mono); }
+.kicker,.eyebrow { text-transform:uppercase; letter-spacing:.06em; }
+.muted { color:var(--muted); }
+.topbar { min-height:80px; padding:var(--s2) 0; align-items:center; box-shadow:inset 0 -1px var(--line); }
+.brand { grid-column:1/6; display:flex; align-items:center; gap:var(--s2); }
+.logo { width:32px; height:32px; color:var(--accent); flex:none; }
+.top-actions { grid-column:6/13; display:flex; justify-content:flex-end; gap:var(--s1); }
+.top-actions button { font:var(--small)/var(--lh) var(--mono); }
+.hero { padding:var(--s4) 0 var(--s4); align-items:end; }
+.hero-title { grid-column:1/7; }
+.masthead { font-size:var(--display); font-weight:600; letter-spacing:-.065em; line-height:80px; }
+.hero-copy { grid-column:8/13; }
+.hero-copy p { max-width:40ch; }
+.eyebrow { margin-bottom:var(--s1); }
+.education { padding:var(--s1) 0; box-shadow:inset 0 1px var(--ink),inset 0 -1px var(--line); }
+.education .label { grid-column:1/4; color:var(--accent); }
+.education p { grid-column:4/13; }
+.workspace { padding:var(--s4) 0; }
+.controls { grid-column:1/4; min-width:0; }
+.viewer { grid-column:4/13; min-width:0; }
+.section-head { display:flex; justify-content:space-between; align-items:baseline; gap:var(--s1); min-height:40px; }
+h2 { font-size:var(--body); line-height:var(--lh); font-weight:600; }
+.source-tabs { display:flex; margin-bottom:var(--s2); box-shadow:inset 0 -1px var(--line); }
+.source-tabs button { flex:1; padding:var(--s1); border:0; background:transparent; min-width:0; }
+.source-tabs button[aria-pressed=true] { box-shadow:inset 0 -3px var(--accent); color:var(--accent); }
+.upload { position:relative; display:block; border:1px dashed var(--muted); background:var(--panel); padding:var(--s3); min-height:144px; }
+.upload.over { outline:2px solid var(--accent); border-color:var(--accent); }
+.upload strong { display:block; font-size:var(--body); line-height:24px; margin-bottom:var(--s1); }
+.upload small { display:block; font-size:var(--small); line-height:24px; color:var(--muted); }
+.upload input { width:100%; margin-top:var(--s2); font:var(--small)/24px var(--sans); }
+input::file-selector-button { padding:8px; margin-right:8px; border:1px solid var(--line); color:var(--ink); background:var(--paper); cursor:pointer; }
+.full { width:100%; }
+.camera-hint { padding:var(--s2) 0; font-size:var(--small); line-height:24px; color:var(--muted); }
+.control-group { margin-top:var(--s3); padding-top:var(--s3); box-shadow:inset 0 1px var(--line); }
+.settings>summary { min-height:48px; font-size:16px; font-weight:600; }
+.field { margin-top:var(--s2); }
+.field>label { display:flex; justify-content:space-between; align-items:center; gap:var(--s1); }
+.field output { font:var(--small)/var(--lh) var(--mono); }
+input[type=range] { display:block; width:100%; min-height:48px; accent-color:var(--accent); margin:8px 0 0; }
+select { width:100%; min-height:48px; background:var(--paper); border:1px solid var(--line); padding:8px; margin-top:8px; }
+.hint { font-size:var(--small); line-height:24px; color:var(--muted); }
+.status-box { margin-top:var(--s3); background:var(--panel); padding:var(--s2); min-height:96px; overflow-wrap:anywhere; }
+.status-heading { display:flex; align-items:center; gap:8px; margin-bottom:8px; }
+.dot { width:8px; height:8px; background:var(--muted); display:inline-block; flex:none; }
+.status-box[data-state=ready] .dot { background:var(--ink); }
+.status-box[data-state=error] .dot { background:var(--accent); }
+.status-box[data-state=loading] .dot { background:var(--accent); animation:pulse 1s infinite alternate; }
+#status { font-size:var(--small); line-height:24px; }
+#retry { margin-top:16px; }
+@keyframes pulse { to { opacity:.25; } }
+.viewer-head { min-height:40px; display:flex; gap:16px; justify-content:space-between; align-items:baseline; }
+.filename { color:var(--muted); max-width:65%; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; }
+
+/* ---- Verdict: the one answer Xid exists to give ---- */
+.verdict { display:flex; align-items:center; gap:var(--s3); padding:var(--s2) var(--s3); margin-bottom:var(--s2); min-height:112px; background:var(--panel); box-shadow:inset 4px 0 var(--muted); }
+.verdict-mark { width:64px; height:64px; flex:none; display:grid; place-items:center; border:2px solid var(--muted); color:var(--muted); font:600 32px/1 var(--sans); }
+.verdict-title { font:600 32px/40px var(--sans); letter-spacing:-.035em; }
+.verdict-detail { font:var(--small)/var(--lh) var(--mono); color:var(--muted); margin-top:4px; }
+.verdict[data-state=yes] { background:var(--ok-soft); box-shadow:inset 4px 0 var(--ok); }
+.verdict[data-state=yes] .verdict-mark { background:var(--ok); border-color:var(--ok); color:#fff; }
+.verdict[data-state=yes] .verdict-title { color:var(--ok); }
+.verdict[data-state=no] { background:var(--accent-soft); box-shadow:inset 4px 0 var(--accent); }
+.verdict[data-state=no] .verdict-mark { background:var(--accent); border-color:var(--accent); color:#fff; }
+.verdict[data-state=no] .verdict-title { color:var(--accent); }
+[data-theme=dark] .verdict[data-state=yes] .verdict-mark,[data-theme=dark] .verdict[data-state=no] .verdict-mark { color:#111; }
+.verdict[data-state=busy] .verdict-mark { animation:pulse 1s infinite alternate; }
+
+.stage { position:relative; height:432px; display:flex; align-items:center; justify-content:center; background:var(--panel); overflow:hidden; }
+#canvas { display:block; max-width:100%; max-height:100%; width:auto; height:auto; background:#111; }
+.empty { width:100%; padding:var(--s6); align-self:stretch; display:flex; flex-direction:column; justify-content:space-between; }
+.empty .index { color:var(--accent); font:48px/48px var(--sans); letter-spacing:-.04em; }
+.empty h3 { font:600 32px/40px var(--sans); letter-spacing:-.035em; margin:var(--s3) 0 var(--s2); max-width:20ch; }
+.empty p { max-width:44ch; color:var(--muted); }
+.empty-bottom { padding-top:var(--s3); font:var(--small)/24px var(--mono); display:flex; justify-content:space-between; gap:16px; }
+.stage-label { position:absolute; left:16px; top:16px; background:#111; color:#fff; font:12px/24px var(--mono); padding:0 8px; pointer-events:none; }
+.transport { display:flex; flex-wrap:wrap; align-items:center; gap:8px; padding:var(--s2) 0; box-shadow:inset 0 -1px var(--line); }
+.transport button { min-height:48px; font-size:14px; }
+.transport .spacer { flex:1; }
+.scrubber { display:flex; align-items:center; gap:16px; padding:8px 0; }
+.scrubber input { flex:1; margin:0; }
+.scrubber output { min-width:112px; text-align:right; }
+.metrics { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); padding:var(--s3) 0; border-bottom:1px solid var(--line); gap:var(--gutter); }
+.metric-value { font-size:40px; line-height:48px; font-weight:500; letter-spacing:-.05em; font-variant-numeric:tabular-nums; }
+.metric-value span { font:var(--small)/24px var(--mono); letter-spacing:0; }
+.metric-label { color:var(--muted); font:var(--small)/24px var(--mono); }
+.results { padding-top:var(--s3); }
+.results table { width:100%; border-collapse:collapse; font-size:14px; margin-top:8px; }
+th,td { text-align:left; padding:8px 0; border-bottom:1px solid var(--line); }
+th { color:var(--muted); font:var(--small)/24px var(--mono); font-weight:400; }
+td:last-child,th:last-child { text-align:right; }
+.details { grid-column:1/-1; padding:var(--s3) 0; box-shadow:inset 0 1px var(--ink); }
+details summary { cursor:pointer; font-size:14px; min-height:32px; }
+.details-content { display:grid; grid-template-columns:1fr 1fr 1fr; gap:var(--gutter); margin-top:16px; }
+.details-content h3 { font-size:16px; line-height:24px; margin-bottom:8px; }
+.details-content p { color:var(--muted); font-size:14px; line-height:24px; }
+#modelInfo { margin-top:16px; padding:16px; background:var(--panel); font:12px/24px var(--mono); white-space:pre-wrap; overflow-wrap:anywhere; }
+.footer { padding:var(--s3) 0 var(--s4); border-top:1px solid var(--line); }
+.credits { grid-column:1/9; font-size:14px; }
+.footer-note { grid-column:9/13; text-align:right; font:12px/24px var(--mono); }
+.guides { position:absolute; inset:0 var(--margin); display:grid; grid-template-columns:repeat(var(--cols),minmax(0,1fr)); column-gap:var(--gutter); pointer-events:none; z-index:20; opacity:0; transition:opacity 120ms; box-shadow:inset 1px 0 #d6002860,inset -1px 0 #d6002860; }
+.guides::after { content:""; position:absolute; inset:0; background:repeating-linear-gradient(to bottom,transparent 0,transparent calc(var(--bl) - 1px),#d6002820 calc(var(--bl) - 1px),#d6002820 var(--bl)),repeating-linear-gradient(to bottom,transparent 0,transparent calc(var(--lh) - 1px),#d6002840 calc(var(--lh) - 1px),#d6002840 var(--lh)); }
+.guides .col { border-inline:1px solid #d6002830; background:#d6002808; color:#b50025; font:12px/24px var(--mono); padding-top:8px; }
+.grid-on .guides { opacity:1; }
+@media(min-width:1500px) { :root { --margin:64px; } }
+@media(max-width:1100px) {
+  :root { --margin:32px; --gutter:16px; }
+  .controls { grid-column:1/5; } .viewer { grid-column:5/13; }
+  .education .label { grid-column:1/5; } .education p { grid-column:5/13; }
+  .stage { height:384px; } .empty { padding:32px; }
+  .details-content { grid-template-columns:1fr 1fr; }
+}
+@media(max-width:760px) {
+  :root { --cols:4; --margin:16px; --gutter:16px; --display:64px; }
+  .brand { grid-column:1/3; } .brand .kicker { display:none; }
+  .top-actions { grid-column:3/5; } .top-actions button { padding:8px; }
+  .hero-title { grid-column:1/5; } .masthead { line-height:64px; }
+  .hero-copy { grid-column:1/5; margin-top:16px; }
+  .education .label,.education p { grid-column:1/5; }
+  .controls,.viewer { grid-column:1/5; } .viewer { margin-top:32px; }
+  .stage { height:360px; } .empty h3 { font-size:28px; line-height:32px; }
+  .controls .control-group.settings { margin-top:16px; }
+  .details-content { grid-template-columns:1fr; }
+  .credits,.footer-note { grid-column:1/5; text-align:left; } .footer-note { margin-top:16px; }
+  .metric-value { font-size:32px; line-height:40px; }
+  .metrics { gap:8px; } .metric-label { font-size:12px; }
+  .verdict { gap:var(--s2); padding:var(--s2); }
+  .verdict-mark { width:48px; height:48px; font-size:24px; }
+  .verdict-title { font-size:24px; line-height:32px; }
+}
+@media(prefers-reduced-motion:reduce) { *,*::before,*::after { animation:none!important; transition:none!important; } }
+</style>
+</head>
+<body>
+<a class="skip" href="#workspace">Skip to the detector</a>
+<div class="wrap">
+  <div class="guides" aria-hidden="true"></div>
+  <header class="grid">
+    <div class="band topbar">
+      <div class="brand">
+        <svg class="logo" role="img" aria-label="Xid mark" viewBox="0 0 32 32" fill="currentColor">
+          <path d="M2 5h28v22H2zm2 2v18h24V7z"/>
+          <path d="M6 10h3l2.5 3.6L14 10h3l-4 5.5 4 5.5h-3l-2.5-3.6L9 21H6l4-5.5z"/>
+          <path d="M19 11h7v2h-7zm0 4h7v2h-7zm0 4h5v2h-5z"/>
+        </svg>
+        <span class="kicker">ID card detection<br>Browser-based / YOLOv8</span>
+      </div>
+      <nav class="top-actions" aria-label="Display controls">
+        <button id="gridToggle" type="button" aria-pressed="false" title="Show the layout grid (G)">Grid [G]</button>
+        <button id="themeToggle" type="button" aria-label="Switch to dark theme">Dark</button>
+      </nav>
+    </div>
+    <div class="band hero">
+      <div class="hero-title"><p class="eyebrow">Look. Detect. Decide.</p><h1 class="masthead optical">Xid</h1></div>
+      <div class="hero-copy"><p>One person, one box, one tag: does this person carry a visible ID card? Xid answers frame by frame, entirely on your device.</p><p class="mono muted">Images / video / live camera</p></div>
+    </div>
+    <div class="band education">
+      <span class="label kicker">Educational use only</span>
+      <p class="hint">Not for access control, identity verification, security screening, or any decision about a real person.</p>
+    </div>
+  </header>
+
+  <main id="workspace" class="grid">
+    <div class="band workspace">
+      <aside class="controls" aria-label="Source and inference controls">
+        <div class="section-head"><h2>01 / Source</h2><span class="mono muted">Local processing</span></div>
+        <div class="source-tabs" role="group" aria-label="Source type">
+          <button type="button" data-mode="image" aria-pressed="true">Image</button>
+          <button type="button" data-mode="video" aria-pressed="false">Video</button>
+          <button type="button" data-mode="camera" aria-pressed="false">Live</button>
+        </div>
+        <div id="uploadPanel">
+          <label id="drop" class="upload" for="file">
+            <strong id="uploadTitle">Choose a photo of a person</strong>
+            <small id="uploadHint">Browse or drag a file here.<br>JPG, PNG, WebP, and browser-supported images.</small>
+            <input id="file" type="file" accept="image/*,video/*">
+          </label>
+        </div>
+        <div id="cameraPanel" hidden>
+          <button id="camera" type="button" class="primary full">Start live camera</button>
+          <p class="camera-hint">Camera permission and HTTPS (or localhost) are required. Processing speed depends on your device.</p>
+          <label class="hint" for="facing">Preferred camera</label>
+          <select id="facing"><option value="user">Front / user</option><option value="environment">Rear / environment</option></select>
+        </div>
+
+        <details id="inferenceSettings" class="control-group settings" open>
+          <summary>02 / Inference settings</summary>
+          <div class="field">
+            <label for="backend">Compute backend</label>
+            <select id="backend"><option value="auto">Auto: GPU, then CPU</option><option value="webgpu">Prefer WebGPU</option><option value="wasm">WASM / CPU</option></select>
+          </div>
+          <div class="field">
+            <label for="personConf">Person confidence <output id="personConfValue" for="personConf">0.40</output></label>
+            <input id="personConf" type="range" min=".05" max=".95" step=".05" value=".40" aria-describedby="personHint">
+            <p id="personHint" class="hint">How sure the person model must be before Xid boxes someone.</p>
+          </div>
+          <div class="field">
+            <label for="conf">ID card confidence <output id="confValue" for="conf">0.25</output></label>
+            <input id="conf" type="range" min=".05" max=".95" step=".05" value=".25" aria-describedby="confHint">
+            <p id="confHint" class="hint">The box is tagged “ID card” only at or above this score.</p>
+          </div>
+          <div class="field">
+            <label for="iou">NMS overlap <output id="iouValue" for="iou">0.45</output></label>
+            <input id="iou" type="range" min=".1" max=".9" step=".05" value=".45" aria-describedby="nmsHint">
+            <p id="nmsHint" class="hint">Merges duplicate boxes on the same person.</p>
+          </div>
+          <div class="field">
+            <label for="maxFps">Video processing limit</label>
+            <select id="maxFps"><option value="5">Up to 5 analyzed frames/s</option><option value="10" selected>Up to 10 analyzed frames/s</option><option value="15">Up to 15 analyzed frames/s</option><option value="30">Up to 30 analyzed frames/s</option></select>
+          </div>
+        </details>
+        <div id="statusBox" class="status-box" data-state="loading">
+          <div class="status-heading"><span class="dot" aria-hidden="true"></span><span id="statusTitle" class="kicker">Initializing models</span></div>
+          <p id="status" role="status" aria-live="polite">Loading the browser inference runtime.</p>
+          <button id="retry" type="button" class="full" hidden>Retry model loading</button>
+        </div>
+      </aside>
+
+      <section class="viewer" aria-label="Detection preview">
+        <div class="viewer-head"><h2>03 / Verdict</h2><span id="filename" class="filename mono">No source selected</span></div>
+        <div id="verdict" class="verdict" data-state="idle" aria-live="polite">
+          <span id="verdictMark" class="verdict-mark" aria-hidden="true">?</span>
+          <div><p id="verdictTitle" class="verdict-title">Awaiting a source</p><p id="verdictDetail" class="verdict-detail">Choose an image, a video, or the live camera.</p></div>
+        </div>
+        <div id="stage" class="stage">
+          <div id="empty" class="empty">
+            <div><span class="index optical">01</span><h3>Show Xid<br>a person.</h3><p>Choose a photo, load a video, or switch to the live camera. Xid looks for a face with an ID tag hanging below it and draws one box: green around face + tag, or red around a person without one.</p></div>
+            <div class="empty-bottom"><span>FACE ∪ TAG → ID CARD</span><span>ON DEVICE</span></div>
+          </div>
+          <canvas id="canvas" width="1280" height="720" hidden aria-label="Source frame with the main person boxed and tagged">Your browser does not support canvas.</canvas>
+          <span id="stageLabel" class="stage-label" hidden>Preview</span>
+        </div>
+        <div class="transport" aria-label="Playback and export">
+          <button id="pause" type="button" disabled>Pause</button>
+          <button id="stop" type="button" disabled>Clear source</button>
+          <span class="spacer"></span>
+          <button id="savePng" type="button" disabled>Save frame</button>
+          <button id="saveJson" type="button" disabled>Export data</button>
+        </div>
+        <div id="scrubber" class="scrubber" hidden>
+          <input id="seek" type="range" min="0" max="1000" value="0" step="1" aria-label="Video position">
+          <output id="time" class="mono">00:00 / 00:00</output>
+        </div>
+        <div class="metrics" aria-label="Current frame metrics">
+          <div><div class="metric-value optical"><span id="idScore" style="font:inherit;letter-spacing:inherit">–</span> <span>%</span></div><div class="metric-label">ID card score</div></div>
+          <div><div class="metric-value optical"><span id="latency" style="font:inherit;letter-spacing:inherit">–</span> <span>ms</span></div><div class="metric-label">inference + rendering</div></div>
+          <div><div class="metric-value optical"><span id="fps" style="font:inherit;letter-spacing:inherit">–</span> <span>fps</span></div><div class="metric-label">analyzed throughput</div></div>
+        </div>
+        <section class="results" aria-label="Detection results">
+          <div class="section-head"><h2>Frame inventory</h2><span id="resultMode" class="mono muted">Awaiting input</span></div>
+          <table><thead><tr><th scope="col">Check</th><th scope="col">Result</th><th scope="col">Confidence</th></tr></thead>
+            <tbody>
+              <tr><td>Main person</td><td id="rowPerson">–</td><td id="rowPersonConf">–</td></tr>
+              <tr><td>Face + ID tag on that person</td><td id="rowId">–</td><td id="rowIdConf">–</td></tr>
+              <tr><td>Other people in frame</td><td id="rowOthers">–</td><td>not boxed</td></tr>
+            </tbody>
+          </table>
+          <p id="renderNote" class="hint"></p>
+        </section>
+      </section>
+    </div>
+    <details class="details">
+      <summary>Model details, privacy, and interpretation</summary>
+      <div class="details-content">
+        <section><h3>Two models, unchanged weights.</h3><p>Xid reads <code>./person.onnx</code> (a standard COCO YOLOv8n detector, used only for its <code>person</code> class) to find who to box, and <code>./best.onnx</code> (trained on <code>person_with_id_card</code>) to decide the tag. It never edits or retrains either model. Media stays in this browser.</p></section>
+        <section><h3>How the tag is decided.</h3><p>An ID is the union of a <strong>face</strong> and the <strong>lanyard + tag</strong> hanging below it, the same two regions the model was trained on. When both are found on the largest person, Xid draws a green box around face ∪ tag and tags it “ID card”. A face alone or a tag alone does not count; the person then gets a red “No ID card” box. A hidden, turned, or very small card can still read as “No ID card”.</p></section>
+        <section><h3>Learn from predictions, not conclusions.</h3><p>Confidence is a model score, not a calibrated guarantee. Live processing samples frames and may skip frames on slower devices. Never use Xid to grant or deny anyone access.</p></section>
+      </div>
+      <pre id="modelInfo">Models: ./person.onnx, ./best.onnx
+Runtime: ONNX Runtime Web 1.30.0</pre>
+    </details>
+  </main>
+  <footer class="grid">
+    <div class="band footer">
+      <p class="credits">Created by Derrick Mirindi, Frederic Mirindi and David Sinkhonde</p>
+      <p class="footer-note">Xid / Educational use only<br>Not an identity-verification tool.</p>
+    </div>
+  </footer>
+</div>
+<video id="video" muted playsinline preload="metadata" hidden></video>
+<noscript><p style="padding:24px">Enable JavaScript to use Xid. Only educational use is permitted.</p></noscript>
+
+<script>
+"use strict";
+/* DEPLOYMENT: put index.html, best.onnx and person.onnx in the same GitHub
+   Pages folder. Serve via HTTPS or localhost, not a file:// URL.
+   best.onnx   YOLOv8n-seg, 1 class (person_with_id_card): output0 [1,37,8400], output1 [1,32,160,160]
+   person.onnx YOLOv8n COCO detector, class 0 = person:     output0 [1,84,8400]
+   If person.onnx is missing, Xid falls back to boxing ID-card detections only. */
+const MODELS = Object.freeze({
+  id:     {url:"./best.onnx",   name:"ID card model", required:true},
+  person: {url:"./person.onnx", name:"Person model",  required:false, personClass:0}
+});
+const CONFIG = Object.freeze({
+  runtimeBase: "https://cdn.jsdelivr.net/npm/onnxruntime-web@1.30.0/dist/",
+  dynamicInputSize: 640, // Used ONLY for dynamic/missing H/W metadata.
+  matchOverlap: 0.5, // Share of the smaller box that must overlap for an ID to belong to the person.
+  // best.onnx is trained on two regions per person, both labelled person_with_id_card:
+  // a FACE box and the LANYARD + TAG polygon hanging below it. An ID counts only when
+  // a face and a tag pair up; the ID box is their union.
+  pairBelow: 0.5,  // Tag top must sit below the face's upper half (in face heights).
+  pairAlign: 0.25, // Tag centre may sit this many face widths outside the face's x-range.
+  pairGap: 0.5,    // Max gap between face bottom and tag top (in face heights).
+  maxDetections: 100, maxCandidates: 3000,
+  displayMaxSide: 1600, maxImagePixels: 40000000
+});
+const OK_COLOR = "#00a86b", NO_COLOR = "#e0002a";
+const $ = id => document.getElementById(id);
+const canvas = $("canvas"), ctx = canvas.getContext("2d");
+const video = $("video");
+const snapshot = document.createElement("canvas"), sctx = snapshot.getContext("2d");
+const preprocessCanvas = document.createElement("canvas");
+const pctx = preprocessCanvas.getContext("2d", {willReadFrequently:true});
+const clamp = (v,a,b) => Math.max(a,Math.min(b,v));
+const pct = v => (v*100).toFixed(0);
+let models = {id:null, person:null}, engine="none", runtimePromise=null, personWarning="";
+let source=null, stream=null, mediaURL=null, sourceEpoch=0, sourceAbort=null;
+let loading=false, busy=false, inFlight=Promise.resolve(), raf=0, dirty=false;
+let lastStart=0, lastMediaTime=-1, lastCompletion=0, fpsEMA=0;
+let rendered=null, selectedMode="image", sliderTimer=0, seeking=false;
+let framesAnalyzed=0, framesWithId=0, lastCountedTime=null;
+
+function status(title,message,state="ready") {
+  $("statusTitle").textContent=title; $("status").textContent=message;
+  $("statusBox").dataset.state=state;
+  $("retry").hidden=state!=="error" || loading;
+}
+function verdict(state,title,detail) {
+  $("verdict").dataset.state=state;
+  $("verdictMark").textContent={yes:"✓",no:"✕",busy:"…"}[state] || "?";
+  $("verdictTitle").textContent=title; $("verdictDetail").textContent=detail;
+}
+function errorText(error) { return error instanceof Error ? error.message : String(error); }
+function setRows(person,personConf,id,idConf,others) {
+  $("rowPerson").textContent=person; $("rowPersonConf").textContent=personConf;
+  $("rowId").textContent=id; $("rowIdConf").textContent=idConf; $("rowOthers").textContent=others;
+}
+function clearMetrics() {
+  ["idScore","latency","fps"].forEach(id=>$(id).textContent="–");
+  setRows("–","–","–","–","–");
+  $("resultMode").textContent="Awaiting inference"; $("renderNote").textContent=personWarning;
+  $("savePng").disabled=$("saveJson").disabled=true; rendered=null;
+  framesAnalyzed=0; framesWithId=0; lastCountedTime=null;
+  if(source) verdict("busy","Analyzing…","Running both models on this source.");
+  else verdict("idle","Awaiting a source","Choose an image, a video, or the live camera.");
+}
+function runtime() {
+  if(window.ort) return Promise.resolve(window.ort);
+  if(runtimePromise) return runtimePromise;
+  runtimePromise=new Promise((resolve,reject)=>{
+    const script=document.createElement("script");
+    script.src=CONFIG.runtimeBase+"ort.webgpu.min.js"; script.crossOrigin="anonymous";
+    const timer=setTimeout(()=>{script.remove();reject(new Error("Runtime download timed out. Check your network and retry."));},45000);
+    script.onload=()=>{clearTimeout(timer);window.ort?resolve(window.ort):reject(new Error("Inference runtime did not initialize."));};
+    script.onerror=()=>{clearTimeout(timer);script.remove();reject(new Error("Cannot download ONNX Runtime. Check network access to jsDelivr."));};
+    document.head.append(script);
+  }).catch(e=>{runtimePromise=null;throw e;});
+  return runtimePromise;
+}
+function inputSizeOf(s,label) {
+  if(s.inputNames.length!==1) throw new Error(`${label} must have a single image input.`);
+  const m=s.inputMetadata, meta=(Array.isArray(m)?m[0]:(m&&m[s.inputNames[0]]))||{};
+  const dims=meta.shape || meta.dimensions || meta.dims || [1,3,"height","width"];
+  if(dims.length!==4 || (typeof dims[1]==="number" && dims[1]!==3) || (typeof dims[0]==="number" && dims[0]!==1))
+    throw new Error(`${label}: expected a batch-1 NCHW RGB input; received ${JSON.stringify(dims)}.`);
+  const h=Number.isInteger(dims[2])&&dims[2]>0?dims[2]:CONFIG.dynamicInputSize;
+  const w=Number.isInteger(dims[3])&&dims[3]>0?dims[3]:CONFIG.dynamicInputSize;
+  if(w>2048||h>2048) throw new Error(`${label}: input exceeds the 2048-pixel limit.`);
+  return {w,h};
+}
+async function openSession(ort,url,preferGpu) {
+  if(preferGpu && navigator.gpu) {
+    try { return {session:await ort.InferenceSession.create(url,{executionProviders:["webgpu","wasm"],graphOptimizationLevel:"all"}),gpu:true}; }
+    catch(e) { console.warn(`WebGPU failed for ${url}, attempting WASM`,e); }
+  }
+  return {session:await ort.InferenceSession.create(url,{executionProviders:["wasm"],graphOptimizationLevel:"all"}),gpu:false};
+}
+async function releaseModels() {
+  for(const key of Object.keys(models)) { if(models[key]) await models[key].session.release().catch(()=>{}); models[key]=null; }
+}
+async function loadModel() {
+  if(loading) return;
+  loading=true; dirty=false; cancelAnimationFrame(raf); raf=0;
+  if(source && source.kind!=="image") stopSource();
+  $("backend").disabled=true; $("retry").hidden=true; $("camera").disabled=true;
+  personWarning=""; clearMetrics();
+  status("Loading models","Downloading best.onnx and person.onnx. The first load can take a while.","loading");
+  try {
+    const ort=await runtime();
+    ort.env.wasm.wasmPaths=CONFIG.runtimeBase;
+    ort.env.wasm.numThreads=window.crossOriginIsolated ? Math.min(4,navigator.hardwareConcurrency||1) : 1;
+    ort.env.wasm.proxy=false;
+    await inFlight; await releaseModels();
+    const preferGpu=$("backend").value!=="wasm";
+    const id=await openSession(ort,MODELS.id.url,preferGpu);
+    models.id={...id,...inputSizeOf(id.session,MODELS.id.name)};
+    try {
+      const person=await openSession(ort,MODELS.person.url,preferGpu);
+      models.person={...person,...inputSizeOf(person.session,MODELS.person.name)};
+    } catch(e) {
+      console.warn("person.onnx unavailable; boxing ID-card detections only",e);
+      personWarning="person.onnx did not load, so Xid can only box people it sees with an ID card. Upload person.onnx beside index.html for “No ID card” boxes.";
+    }
+    const gpu=models.id.gpu||models.person?.gpu;
+    engine=gpu?"WebGPU preferred / CPU fallback":"WASM / CPU";
+    $("modelInfo").textContent=[
+      `Runtime: ONNX Runtime Web 1.30.0 / ${engine}`,
+      `ID card model: ${MODELS.id.url} [1, 3, ${models.id.h}, ${models.id.w}] → ${models.id.session.outputNames.join(", ")}`,
+      models.person?`Person model: ${MODELS.person.url} [1, 3, ${models.person.h}, ${models.person.w}] → ${models.person.session.outputNames.join(", ")} (class ${MODELS.person.personClass} = person)`:`Person model: not loaded`,
+      `Tag rule: "ID card" when a face detection and a lanyard/tag detection directly below it pair up (both person_with_id_card) and their union covers ≥ ${CONFIG.matchOverlap*100}% of the smaller of it and the person box.`
+    ].join("\n");
+    $("renderNote").textContent=personWarning;
+    status(models.person?"Models ready":"ID model only",`${engine}. ${models.person?"Person and ID card models loaded.":"person.onnx is missing."} Choose a source to begin.`,models.person?"ready":"error");
+  } catch(e) {
+    await releaseModels(); engine="none";
+    status("Model unavailable",`${errorText(e)} Ensure best.onnx is beside index.html and served over HTTPS. A Git LFS pointer or an HTML error page is not a model.`,"error");
+    verdict("idle","Model unavailable","Xid cannot give a verdict until best.onnx loads.");
+    console.error(e);
+  } finally {
+    loading=false; $("backend").disabled=false; $("camera").disabled=!models.id;
+    $("retry").hidden=!!models.id;
+    if(source && models.id) {
+      if(source.kind==="video") { $("pause").disabled=false; $("pause").textContent=video.paused?"Play":"Pause"; }
+      requestInference();
+    }
+  }
+}
+
+function letterbox(src,w,h,inW,inH) {
+  const ratio=Math.min(inW/w,inH/h);
+  const nw=Math.max(1,Math.round(w*ratio)), nh=Math.max(1,Math.round(h*ratio));
+  const px=Math.floor((inW-nw)/2), py=Math.floor((inH-nh)/2);
+  preprocessCanvas.width=inW; preprocessCanvas.height=inH;
+  pctx.fillStyle="rgb(114,114,114)"; pctx.fillRect(0,0,inW,inH);
+  pctx.drawImage(src,0,0,w,h,px,py,nw,nh);
+  const bytes=pctx.getImageData(0,0,inW,inH).data, area=inW*inH;
+  const chw=new Float32Array(3*area);
+  for(let i=0;i<area;i++) {
+    chw[i]=bytes[4*i]/255; chw[area+i]=bytes[4*i+1]/255; chw[2*area+i]=bytes[4*i+2]/255;
+  }
+  return {tensor:new ort.Tensor("float32",chw,[1,3,inH,inW]),px,py,nw,nh,inW,inH};
+}
+function boxIoU(a,b) {
+  const inter=Math.max(0,Math.min(a.x2,b.x2)-Math.max(a.x1,b.x1))*Math.max(0,Math.min(a.y2,b.y2)-Math.max(a.y1,b.y1));
+  const union=(a.x2-a.x1)*(a.y2-a.y1)+(b.x2-b.x1)*(b.y2-b.y1)-inter;
+  return union>0 ? inter/union : 0;
+}
+function overlapOfSmaller(a,b) {
+  const inter=Math.max(0,Math.min(a.x2,b.x2)-Math.max(a.x1,b.x1))*Math.max(0,Math.min(a.y2,b.y2)-Math.max(a.y1,b.y1));
+  const smaller=Math.min((a.x2-a.x1)*(a.y2-a.y1),(b.x2-b.x1)*(b.y2-b.y1));
+  return smaller>0 ? inter/smaller : 0;
+}
+function nms(boxes,threshold) {
+  const kept=[];
+  for(const box of boxes) {
+    if(kept.every(k=>k.cls!==box.cls||boxIoU(k,box)<=threshold)) kept.push(box);
+    if(kept.length>=CONFIG.maxDetections) break;
+  }
+  return kept;
+}
+/* Decodes a raw YOLOv8 head ([1, 4+nc+nm, N]) into letterbox-space boxes.
+   nm is the mask-coefficient count (0 for a detect-only model). */
+function parseBoxes(out,confidence,nmsThreshold,lb,onlyClass=null) {
+  const tensors=Object.values(out);
+  const det=tensors.find(t=>t.dims.length===3&&t.dims[0]===1), proto=tensors.find(t=>t.dims.length===4&&t.dims[0]===1);
+  if(!det) throw new Error(`No [1, C, N] detection output found: ${tensors.map(t=>`[${t.dims}]`).join("; ")}`);
+  const nm=proto?proto.dims[1]:0, [,a,b]=det.dims, values=det.data;
+  const first=a<b, count=first?b:a, nc=(first?a:b)-4-nm;
+  if(nc<1||nc>1000) throw new Error(`Unexpected detection shape [${det.dims}].`);
+  const at=first?(i,j)=>values[j*b+i]:(i,j)=>values[i*b+j];
+  let rows=[];
+  for(let i=0;i<count;i++) {
+    let score=-Infinity, cls=-1;
+    if(onlyClass!==null) { score=at(i,4+onlyClass); cls=onlyClass; }
+    else for(let c=0;c<nc;c++) { const v=at(i,4+c); if(v>score) { score=v; cls=c; } }
+    if(!Number.isFinite(score)||score<confidence) continue;
+    const cx=at(i,0),cy=at(i,1),w=at(i,2),h=at(i,3);
+    const x1=clamp(cx-w/2,0,lb.inW),x2=clamp(cx+w/2,0,lb.inW),y1=clamp(cy-h/2,0,lb.inH),y2=clamp(cy+h/2,0,lb.inH);
+    if(x2<=x1||y2<=y1) continue;
+    rows.push({x1,y1,x2,y2,score:Math.min(score,1),cls});
+  }
+  rows.sort((x,y)=>y.score-x.score);
+  return nms(rows.slice(0,CONFIG.maxCandidates),nmsThreshold);
+}
+/* Letterbox space → source-image pixels. */
+function toImage(d,lb,w,h) {
+  const box={
+    x1:clamp((d.x1-lb.px)*w/lb.nw,0,w), y1:clamp((d.y1-lb.py)*h/lb.nh,0,h),
+    x2:clamp((d.x2-lb.px)*w/lb.nw,0,w), y2:clamp((d.y2-lb.py)*h/lb.nh,0,h), score:d.score
+  };
+  return box.x2>box.x1&&box.y2>box.y1 ? box : null;
+}
+/* Pair each face with the tag hanging directly below it; each detection is used once.
+   A pair's score is the weaker of the two, since both are needed. */
+function pairFaceAndTag(dets) {
+  const candidates=[];
+  for(const f of dets) for(const t of dets) {
+    if(f===t) continue;
+    const fw=f.x2-f.x1, fh=f.y2-f.y1, tcx=(t.x1+t.x2)/2;
+    const below=t.y1>=f.y1+CONFIG.pairBelow*fh && (t.y1+t.y2)/2>(f.y1+f.y2)/2;
+    const aligned=tcx>=f.x1-CONFIG.pairAlign*fw && tcx<=f.x2+CONFIG.pairAlign*fw;
+    const touching=t.y1-f.y2<=CONFIG.pairGap*fh;
+    if(below&&aligned&&touching) candidates.push({face:f,tag:t,score:Math.min(f.score,t.score)});
+  }
+  candidates.sort((a,b)=>b.score-a.score);
+  const used=new Set(), pairs=[];
+  for(const c of candidates) {
+    if(used.has(c.face)||used.has(c.tag)) continue;
+    used.add(c.face); used.add(c.tag);
+    pairs.push({...c,x1:Math.min(c.face.x1,c.tag.x1),y1:Math.min(c.face.y1,c.tag.y1),x2:Math.max(c.face.x2,c.tag.x2),y2:Math.max(c.face.y2,c.tag.y2)});
+  }
+  return {pairs,unpaired:dets.length-2*pairs.length};
+}
+/* One box per frame: the largest person. With an ID (face + tag pair) on them, the box is
+   the green face ∪ tag union; without one, it is the red person box. */
+function decide(people,idDets) {
+  const area=b=>(b.x2-b.x1)*(b.y2-b.y1);
+  const {pairs,unpaired}=pairFaceAndTag(idDets);
+  const base={pairs:pairs.length,unpaired};
+  if(people.length) {
+    const main=people.reduce((p,q)=>area(q)>area(p)?q:p);
+    const match=pairs.find(p=>overlapOfSmaller(main,p)>=CONFIG.matchOverlap)||null;
+    if(match) return {...base,box:match,hasId:true,idScore:match.score,faceScore:match.face.score,tagScore:match.tag.score,personScore:main.score,boxFrom:"face+tag",others:people.length-1};
+    return {...base,box:main,hasId:false,idScore:null,faceScore:null,tagScore:null,personScore:main.score,boxFrom:"person",others:people.length-1};
+  }
+  if(pairs.length) { const p=pairs[0]; return {...base,box:p,hasId:true,idScore:p.score,faceScore:p.face.score,tagScore:p.tag.score,personScore:null,boxFrom:"face+tag",others:0}; }
+  return {...base,box:null,hasId:false,idScore:null,faceScore:null,tagScore:null,personScore:null,boxFrom:null,others:0};
+}
+function paintResult(r) {
+  const w=snapshot.width,h=snapshot.height;
+  if(canvas.width!==w||canvas.height!==h) { canvas.width=w;canvas.height=h; }
+  ctx.drawImage(snapshot,0,0);
+  if(r.box) {
+    const b={x1:r.box.x1*w/r.srcW,y1:r.box.y1*h/r.srcH,x2:r.box.x2*w/r.srcW,y2:r.box.y2*h/r.srcH};
+    const color=r.hasId?OK_COLOR:NO_COLOR;
+    ctx.lineWidth=Math.max(3,w/250); ctx.strokeStyle=color;
+    ctx.strokeRect(b.x1,b.y1,b.x2-b.x1,b.y2-b.y1);
+    const fs=Math.max(16,Math.round(w/45)); ctx.font=`700 ${fs}px Arial,sans-serif`;
+    const tag=r.hasId?`✓ ID CARD ${pct(r.idScore)}%`:"✕ NO ID CARD";
+    const tw=Math.min(w,ctx.measureText(tag).width+20), th=fs+14;
+    const x=clamp(b.x1-ctx.lineWidth/2,0,Math.max(0,w-tw));
+    const y=b.y1-th>=0?b.y1-th:clamp(b.y1,0,Math.max(0,h-th)); // Above the box, or just inside when the box touches the top edge.
+    ctx.fillStyle=color;ctx.fillRect(x,y,tw,th);
+    ctx.fillStyle="#fff";ctx.fillText(tag,x+10,y+fs+4,Math.max(1,tw-20));
+  } else {
+    const fs=Math.max(14,Math.round(w/55)); ctx.font=`700 ${fs}px Arial,sans-serif`;
+    const stamp="NO PERSON DETECTED", sw=ctx.measureText(stamp).width+24;
+    ctx.fillStyle="#111";ctx.fillRect(w-sw,0,sw,fs+16);ctx.fillStyle="#fff";ctx.fillText(stamp,w-sw+12,fs+6);
+  }
+  ctx.font=`${Math.max(12,Math.round(w/95))}px Arial,sans-serif`;
+  const credit="Xid / Educational use only", cw=ctx.measureText(credit).width;
+  ctx.fillStyle="#111";ctx.fillRect(0,h-28,cw+16,28);ctx.fillStyle="#fff";ctx.fillText(credit,8,h-9);
+  $("empty").hidden=true;canvas.hidden=false;
+}
+function updateInventory(r,elapsed,captured,mediaTime,settings) {
+  const now=performance.now();
+  if(captured.kind!=="image") {
+    if(lastCompletion) {
+      const instantaneous=1000/(now-lastCompletion);
+      fpsEMA=fpsEMA?fpsEMA*.75+instantaneous*.25:instantaneous;
+    }
+    lastCompletion=now;
+    if(mediaTime!==lastCountedTime) { lastCountedTime=mediaTime; framesAnalyzed++; if(r.hasId) framesWithId++; }
+  }
+  $("idScore").textContent=r.idScore!==null?pct(r.idScore):"–";
+  $("latency").textContent=elapsed.toFixed(0);
+  $("fps").textContent=captured.kind==="image"||!fpsEMA?"–":fpsEMA.toFixed(1);
+  $("resultMode").textContent=models.person?"Person + ID card models":"ID card model only";
+  $("stageLabel").textContent=captured.kind==="image"?"IMAGE / ANALYZED":`${captured.kind==="camera"?"LIVE":"VIDEO"} / ${formatTime(mediaTime)}`;
+  $("stageLabel").hidden=false;
+  const history=captured.kind==="image"?"":` ID card seen in ${framesWithId} of ${framesAnalyzed} analyzed frames.`;
+  if(!r.box) verdict("idle","No person detected",`Xid needs one visible person in the frame.${history}`);
+  else if(r.hasId) verdict("yes","ID card",`Face and ID tag found together · face ${pct(r.faceScore)}%, tag ${pct(r.tagScore)}%.${history}`);
+  else verdict("no","No ID card",`No face + ID tag pair at or above ${settings.confidence.toFixed(2)} on the boxed person.${history}`);
+  setRows(
+    r.personScore!==null?"Found":(r.box?"Not separately found":"Not found"),
+    r.personScore!==null?`${(r.personScore*100).toFixed(1)}%`:"–",
+    r.box?(r.hasId?"Yes (face + tag)":"No"):"–",
+    r.idScore!==null?`face ${(r.faceScore*100).toFixed(1)}% · tag ${(r.tagScore*100).toFixed(1)}%`:"–",
+    models.person?String(r.others):"unknown"
+  );
+  const unpairedNote=r.unpaired?`${r.unpaired} face or tag detection${r.unpaired===1?"":"s"} without a partner ignored: an ID needs both.`:"";
+  $("renderNote").textContent=[personWarning,unpairedNote].filter(Boolean).join(" ");
+  rendered={
+    app:"Xid",usage:"Educational purposes only",models:{id:MODELS.id.url,person:models.person?MODELS.person.url:null},
+    providerConfiguration:engine,capturedAt:new Date().toISOString(),sourceType:captured.kind,sourceName:captured.name,
+    sourceWidth:captured.width,sourceHeight:captured.height,videoTimeSeconds:mediaTime,
+    verdict:!r.box?"no_person_detected":r.hasId?"id_card":"no_id_card",
+    personConfidenceThreshold:settings.personConf,idCardConfidenceThreshold:settings.confidence,nmsIoU:settings.iou,
+    box:r.box?{xyxy:[r.box.x1,r.box.y1,r.box.x2,r.box.y2],from:r.boxFrom}:null,
+    personConfidence:r.personScore,idCardConfidence:r.idScore,faceConfidence:r.faceScore,tagConfidence:r.tagScore,
+    faceTagPairsInFrame:r.pairs,unpairedDetections:r.unpaired,otherPeopleInFrame:models.person?r.others:null
+  };
+  if(captured.kind!=="image") Object.assign(rendered,{framesAnalyzed,framesWithIdCard:framesWithId});
+  $("savePng").disabled=$("saveJson").disabled=false;
+}
+
+function schedule() { if(!raf) raf=requestAnimationFrame(tick); }
+function requestInference() { dirty=true; if(models.id&&!loading&&source) schedule(); }
+async function tick(now) {
+  raf=0;
+  if(busy||loading||!models.id||!source||document.hidden) return;
+  const moving=source.kind!=="image"&&!video.paused&&!video.ended;
+  if(!moving&&!dirty) return;
+  if(source.kind!=="image"&&(video.readyState<2||video.seeking)) { if(moving||dirty) schedule(); return; }
+  if(moving&&!dirty&&(now-lastStart<1000/+$("maxFps").value || video.currentTime===lastMediaTime)) { schedule();return; }
+  busy=true; dirty=false; lastStart=now;
+  const epoch=sourceEpoch,captured={...source},current={...models},mediaTime=captured.kind==="image"?null:video.currentTime;
+  const settings={confidence:+$("conf").value,personConf:+$("personConf").value,iou:+$("iou").value};
+  lastMediaTime=mediaTime;
+  let finish; inFlight=new Promise(resolve=>finish=resolve);
+  const disposables=[]; let failure=false;
+  try {
+    const t0=performance.now(),src=captured.kind==="image"?captured.image:video;
+    const ratio=Math.min(1,CONFIG.displayMaxSide/Math.max(captured.width,captured.height));
+    snapshot.width=Math.max(1,Math.round(captured.width*ratio));snapshot.height=Math.max(1,Math.round(captured.height*ratio));
+    sctx.drawImage(src,0,0,snapshot.width,snapshot.height); // Capture once; never draw a newer video frame after inference.
+    const sw=snapshot.width, sh=snapshot.height;
+    const run=async(model,lb)=>{const out=await model.session.run({[model.session.inputNames[0]]:lb.tensor});disposables.push(...Object.values(out));return out;};
+    const idLb=letterbox(snapshot,sw,sh,current.id.w,current.id.h); disposables.push(idLb.tensor);
+    const idOut=await run(current.id,idLb);
+    let personLb=null, personOut=null;
+    if(current.person) {
+      personLb=current.person.w===idLb.inW&&current.person.h===idLb.inH?idLb:letterbox(snapshot,sw,sh,current.person.w,current.person.h);
+      if(personLb!==idLb) disposables.push(personLb.tensor);
+      personOut=await run(current.person,personLb);
+    }
+    if(epoch!==sourceEpoch||loading||current.id!==models.id) return;
+    const idCards=parseBoxes(idOut,settings.confidence,settings.iou,idLb).map(d=>toImage(d,idLb,sw,sh)).filter(Boolean);
+    const people=personOut?parseBoxes(personOut,settings.personConf,settings.iou,personLb,MODELS.person.personClass).map(d=>toImage(d,personLb,sw,sh)).filter(Boolean):[];
+    const r=decide(people,idCards);
+    // Report the box in original source pixels; paint it in snapshot pixels.
+    const scale=captured.width/sw;
+    if(r.box) r.box={...r.box,x1:r.box.x1*scale,y1:r.box.y1*scale,x2:r.box.x2*scale,y2:r.box.y2*scale};
+    r.srcW=captured.width; r.srcH=captured.height;
+    paintResult(r);
+    updateInventory(r,performance.now()-t0,captured,mediaTime,settings);
+    const paused=captured.kind!=="image"&&video.paused;
+    status(paused?"Analysis paused":"Analysis active",paused
+      ? (captured.kind==="camera"?"Preview paused; the camera is still active. Use Stop live camera to release it.":"Video paused. Resume or seek to inspect another frame.")
+      : `${engine}. ${captured.kind==="image"?"Image analyzed locally.":"Showing sampled, analyzed frames; not person tracking."}`);
+  } catch(e) {
+    if(epoch===sourceEpoch && !loading) {
+      failure=true;dirty=false;video.pause();
+      if(stream) { stream.getTracks().forEach(t=>t.stop());stream=null; }
+      $("camera").textContent="Start live camera";$("pause").disabled=true;
+      $("stageLabel").textContent="ANALYSIS ERROR";status("Analysis paused",`${errorText(e)} Try the CPU backend or review model details.`,"error");
+      verdict("idle","No verdict","The analysis failed; see the status panel.");
+      console.error(e);
+    }
+  } finally {
+    for(const t of new Set(disposables)) t?.dispose?.();
+    busy=false;finish();
+    if(!failure && models.id&&!loading&&source && (dirty||(source.kind!=="image"&&!video.paused&&!video.ended))) schedule();
+  }
+}
+
+function stopSource(clear=true) {
+  sourceEpoch++;sourceAbort?.abort();sourceAbort=null;dirty=false;
+  cancelAnimationFrame(raf);raf=0;video.pause();video.removeAttribute("src");video.srcObject=null;video.load();
+  if(stream) { stream.getTracks().forEach(t=>t.stop());stream=null; }
+  if(mediaURL) { URL.revokeObjectURL(mediaURL);mediaURL=null; }
+  source=null;lastCompletion=0;fpsEMA=0;lastMediaTime=-1;
+  $("pause").disabled=true;$("pause").textContent="Pause";$("camera").textContent="Start live camera";
+  $("stop").disabled=true;$("scrubber").hidden=true;
+  if(clear) {
+    canvas.hidden=true;$("empty").hidden=false;$("stageLabel").hidden=true;
+    $("filename").textContent="No source selected";clearMetrics();
+    if(models.id&&!loading) status("Models ready","Source cleared. Choose an image, video, or camera.");
+  }
+}
+function switchMode(mode,clear=true) {
+  if(clear) stopSource();
+  selectedMode=mode;
+  document.querySelectorAll("[data-mode]").forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.mode===mode)));
+  $("cameraPanel").hidden=mode!=="camera";$("uploadPanel").hidden=mode==="camera";
+  $("uploadTitle").textContent=mode==="video"?"Choose a video of people":"Choose a photo of a person";
+  $("uploadHint").textContent=mode==="video"?"Browse or drag a file here. MP4, WebM, and browser-supported videos.":"Browse or drag a file here. JPG, PNG, WebP, and browser-supported images.";
+  $("file").accept=mode==="video"?"video/*":"image/*";
+}
+function waitVideo(signal) {
+  if(video.readyState>=2) return Promise.resolve();
+  return new Promise((resolve,reject)=>{
+    const cleanup=()=>{clearTimeout(timeout);video.removeEventListener("loadeddata",ok);video.removeEventListener("error",bad);signal.removeEventListener("abort",abort);};
+    const ok=()=>{cleanup();resolve();};
+    const bad=()=>{cleanup();reject(new Error("The browser could not decode this video. Try an H.264 MP4 or WebM file."));};
+    const abort=()=>{cleanup();reject(new DOMException("Source changed","AbortError"));};
+    const timeout=setTimeout(()=>{cleanup();reject(new Error("Video loading timed out. Try another file or camera."));},25000);
+    video.addEventListener("loadeddata",ok,{once:true});video.addEventListener("error",bad,{once:true});signal.addEventListener("abort",abort,{once:true});
+    if(signal.aborted) abort();
+  });
+}
+function preview(src,w,h) {
+  const r=Math.min(1,CONFIG.displayMaxSide/Math.max(w,h));
+  canvas.width=Math.max(1,Math.round(w*r));canvas.height=Math.max(1,Math.round(h*r));
+  ctx.drawImage(src,0,0,canvas.width,canvas.height);
+  canvas.hidden=false;$("empty").hidden=true;$("stageLabel").hidden=false;$("stageLabel").textContent="SOURCE PREVIEW / NOT YET ANALYZED";
+}
+async function handleFile(file) {
+  if(!file) return;
+  const isImage=file.type.startsWith("image/") || /\.(jpe?g|png|webp|gif|bmp|avif)$/i.test(file.name);
+  const isVideo=file.type.startsWith("video/") || /\.(mp4|webm|mov|m4v|ogv)$/i.test(file.name);
+  if(!isImage&&!isVideo) { status("Unsupported file","Choose a browser-supported image or video.","error");return; }
+  if(isImage && file.size>50*1024*1024) { status("Image too large","Choose an image under 50 MB.","error");return; }
+  stopSource();switchMode(isImage?"image":"video",false);
+  const epoch=sourceEpoch;sourceAbort=new AbortController();const signal=sourceAbort.signal;
+  const url=URL.createObjectURL(file);mediaURL=url;$("filename").textContent=file.name;
+  try {
+    if(isImage) {
+      const img=new Image();img.src=url;await img.decode();
+      if(epoch!==sourceEpoch) return;
+      if(!img.naturalWidth||img.naturalWidth*img.naturalHeight>CONFIG.maxImagePixels) throw new Error("Choose an image with at most 40 million pixels.");
+      source={kind:"image",image:img,width:img.naturalWidth,height:img.naturalHeight,name:file.name};
+      preview(img,source.width,source.height);
+    } else {
+      video.loop=false;video.src=url;video.load();await waitVideo(signal);
+      if(epoch!==sourceEpoch) return;
+      source={kind:"video",width:video.videoWidth,height:video.videoHeight,name:file.name};
+      $("scrubber").hidden=false;preview(video,source.width,source.height);
+      $("pause").disabled=!models.id;$("pause").textContent=models.id?"Pause":"Play";
+      if(models.id&&!loading) {
+        try { await video.play(); } catch { $("pause").textContent="Play"; }
+      }
+    }
+    if(epoch!==sourceEpoch) return;
+    $("stop").disabled=false;clearMetrics();
+    if(models.id&&!loading) requestInference();
+    else if(!loading) status("Preview only","The source is local. Load the models successfully to analyze it.","error");
+  } catch(e) {
+    if(epoch===sourceEpoch && e.name!=="AbortError") {
+      stopSource();status("Source unavailable",errorText(e),"error");
+    }
+  }
+}
+async function startCamera() {
+  if(stream || (sourceAbort&&selectedMode==="camera"&&!source)) { stopSource();return; }
+  if(!models.id||loading) { status("Model required","Load best.onnx before starting live inference.","error");return; }
+  if(!window.isSecureContext || !navigator.mediaDevices?.getUserMedia) {
+    status("Camera unavailable","Open this page through HTTPS or localhost in a browser that supports camera access. Embedded previews may block camera permission.","error");return;
+  }
+  stopSource();const epoch=sourceEpoch;sourceAbort=new AbortController();const signal=sourceAbort.signal;
+  $("camera").textContent="Cancel camera request";$("stop").disabled=false;
+  status("Camera permission","Allow camera access to start local analysis.");
+  try {
+    const acquired=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:$("facing").value},width:{ideal:1280},height:{ideal:720}},audio:false});
+    if(epoch!==sourceEpoch) { acquired.getTracks().forEach(t=>t.stop());return; }
+    stream=acquired;video.srcObject=stream;
+    await video.play();await waitVideo(signal);
+    if(epoch!==sourceEpoch) return;
+    source={kind:"camera",width:video.videoWidth,height:video.videoHeight,name:"Live camera"};
+    $("filename").textContent="Live camera / local only";$("camera").textContent="Stop live camera";
+    $("pause").disabled=false;$("pause").textContent="Pause";clearMetrics();requestInference();
+  } catch(e) {
+    if(epoch===sourceEpoch && e.name!=="AbortError") {
+      stopSource();
+      const message=e.name==="NotAllowedError"?"Camera permission was denied or blocked. Allow access in the browser, or upload a file.":errorText(e);
+      status("Camera unavailable",message,"error");
+    }
+  }
+}
+function formatTime(seconds) {
+  if(!Number.isFinite(seconds)) return "00:00";
+  const value=Math.max(0,Math.floor(seconds));
+  return `${String(Math.floor(value/60)).padStart(2,"0")}:${String(value%60).padStart(2,"0")}`;
+}
+function download(blob,name) {
+  const url=URL.createObjectURL(blob),a=document.createElement("a");a.href=url;a.download=name;
+  document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1500);
+}
+$("file").addEventListener("change",e=>{handleFile(e.target.files[0]);e.target.value="";});
+document.querySelectorAll("[data-mode]").forEach(button=>button.addEventListener("click",()=>switchMode(button.dataset.mode)));
+for(const id of ["drop","stage"]) {
+  const zone=$(id);
+  zone.addEventListener("dragover",e=>{e.preventDefault();zone.classList.add("over");});
+  zone.addEventListener("dragleave",()=>zone.classList.remove("over"));
+  zone.addEventListener("drop",e=>{e.preventDefault();zone.classList.remove("over");handleFile(e.dataTransfer.files[0]);});
+}
+$("camera").addEventListener("click",startCamera);
+$("facing").addEventListener("change",()=>{if(stream) {stopSource();startCamera();}});
+$("stop").addEventListener("click",()=>{stopSource();if(models.id)status("Models ready","Source cleared. Choose another image, video, or camera.");});
+$("pause").addEventListener("click",async()=>{
+  if(!source||source.kind==="image"||!models.id) return;
+  if(video.paused||video.ended) {
+    if(video.ended) video.currentTime=0;
+    try { await video.play();$("pause").textContent="Pause";lastCompletion=0;requestInference(); }
+    catch(e) {status("Playback paused",errorText(e),"error");}
+  } else {
+    video.pause();$("pause").textContent="Resume";requestInference();
+    if(source.kind==="camera") status("Camera paused","Preview paused; the camera is still active. Use Stop live camera to release it.");
+  }
+});
+video.addEventListener("ended",()=>{$("pause").textContent="Replay";dirty=true;schedule();});
+video.addEventListener("error",()=>{
+  if(source?.kind==="video") {video.pause();status("Video unavailable","Playback failed. Try another browser-supported video.","error");}
+});
+video.addEventListener("timeupdate",()=>{
+  if(source?.kind==="video"&&Number.isFinite(video.duration)) {
+    if(!seeking) $("seek").value=Math.round(1000*video.currentTime/Math.max(video.duration,.001));
+    $("time").textContent=`${formatTime(video.currentTime)} / ${formatTime(video.duration)}`;
+  }
+});
+$("seek").addEventListener("input",()=>{seeking=true;});
+$("seek").addEventListener("change",()=>{
+  if(source?.kind==="video"&&Number.isFinite(video.duration)) video.currentTime=+$("seek").value*video.duration/1000;
+  seeking=false;requestInference();
+});
+video.addEventListener("seeked",requestInference);
+for(const id of ["conf","personConf","iou"]) $(id).addEventListener("input",()=>{
+  $(id+"Value").textContent=(+$(id).value).toFixed(2);
+  clearTimeout(sliderTimer);sliderTimer=setTimeout(requestInference,120);
+});
+$("maxFps").addEventListener("change",requestInference);
+$("backend").addEventListener("change",loadModel);$("retry").addEventListener("click",loadModel);
+$("savePng").addEventListener("click",()=>{
+  if(!rendered) return;
+  canvas.toBlob(blob=>{if(blob)download(blob,"Xid-educational-frame.png");},"image/png");
+});
+$("saveJson").addEventListener("click",()=>{
+  if(rendered) download(new Blob([JSON.stringify(rendered,null,2)],{type:"application/json"}),"Xid-frame-result.json");
+});
+document.addEventListener("visibilitychange",()=>{
+  if(document.hidden) {cancelAnimationFrame(raf);raf=0;}
+  else {lastCompletion=0;if(source)requestInference();}
+});
+window.addEventListener("pagehide",()=>{stopSource();});
+
+/* One modular grid drives both the content and the optional guides. */
+function rebuildGuides() {
+  const count=parseInt(getComputedStyle(document.documentElement).getPropertyValue("--cols"),10);
+  const guides=document.querySelector(".guides");guides.replaceChildren();
+  for(let i=0;i<count;i++) { const col=document.createElement("span");col.className="col";col.textContent=String(i+1).padStart(2,"0");guides.append(col); }
+}
+function toggleGrid() {
+  const active=document.body.classList.toggle("grid-on");$("gridToggle").setAttribute("aria-pressed",String(active));
+}
+function opticalAlignment() {
+  const c=document.createElement("canvas").getContext("2d");
+  document.querySelectorAll(".optical").forEach(el=>{
+    el.style.marginLeft="0px";const cs=getComputedStyle(el),first=(el.textContent||"").trim()[0];if(!first)return;
+    c.font=`${cs.fontStyle} ${cs.fontWeight} ${cs.fontSize} ${cs.fontFamily}`;
+    const bearing=c.measureText(first).actualBoundingBoxLeft;
+    if(Number.isFinite(bearing)) el.style.marginLeft=`${bearing.toFixed(2)}px`;
+  });
+}
+$("gridToggle").addEventListener("click",toggleGrid);
+document.addEventListener("keydown",e=>{
+  if(e.key.toLowerCase()==="g"&&!e.ctrlKey&&!e.metaKey&&!e.altKey&&!/INPUT|SELECT|TEXTAREA/.test(e.target.tagName)&&!e.target.isContentEditable) {e.preventDefault();toggleGrid();}
+});
+const themeMedia=matchMedia("(prefers-color-scheme:dark)");
+const mobileMedia=matchMedia("(max-width:760px)");
+$("inferenceSettings").open=!mobileMedia.matches;
+mobileMedia.addEventListener("change",e=>{$("inferenceSettings").open=!e.matches;});
+let manualTheme=false;
+function setTheme(dark) {
+  document.documentElement.dataset.theme=dark?"dark":"light";
+  $("themeToggle").textContent=dark?"Light":"Dark";
+  $("themeToggle").setAttribute("aria-label",`Switch to ${dark?"light":"dark"} theme`);
+}
+setTheme(themeMedia.matches);
+$("themeToggle").addEventListener("click",()=>{manualTheme=true;setTheme(document.documentElement.dataset.theme!=="dark");});
+themeMedia.addEventListener("change",e=>{if(!manualTheme)setTheme(e.matches);});
+window.addEventListener("resize",()=>{rebuildGuides();opticalAlignment();});
+document.fonts.ready.then(opticalAlignment);rebuildGuides();
+loadModel();
+</script>
+</body>
+</html>
