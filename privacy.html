@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Xid privacy policy</title>
+<style>
+  :root { --ink:#151515; --muted:#606060; --line:#d5d5d5; --accent:#d60028; --paper:#fff; }
+  @media (prefers-color-scheme: dark) { :root { --ink:#f4f4f4; --muted:#b6b6b6; --line:#454545; --accent:#ff536f; --paper:#151515; } }
+  body { margin:0; background:var(--paper); color:var(--ink); font:16px/1.6 "Helvetica Neue",Arial,sans-serif; }
+  main { max-width:720px; margin:auto; padding:32px 16px 64px; }
+  h1 { font-size:40px; letter-spacing:-.03em; margin:0 0 4px; }
+  h2 { font-size:18px; margin:32px 0 8px; padding-top:16px; border-top:1px solid var(--line); }
+  .meta { color:var(--muted); font:13px/1.6 Consolas,monospace; }
+  .note { border-left:4px solid var(--accent); padding:8px 16px; color:var(--muted); }
+  a { color:inherit; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Xid privacy policy</h1>
+  <p class="meta">Applies to the Xid Android app (com.derrickmirindi.xid) and the Xid website · Last updated 26 October 2026</p>
+
+  <p class="note">Short version: Xid analyses photos and camera frames entirely on your device. It has no internet permission, collects no personal data, and sends nothing to us or anyone else.</p>
+
+  <h2>What Xid does</h2>
+  <p>Xid is an educational app that boxes the people in a photo or camera frame and tags whether each one carries a visible ID card. It uses two machine-learning models that are packaged inside the app and run on your phone's processor.</p>
+
+  <h2>Camera</h2>
+  <p>Xid asks for camera permission only for the Live tab. Camera frames are processed in memory on your device and discarded immediately. They are never recorded, uploaded or shared, unless you press the shutter button, which saves that single frame to your on-device history as described below.</p>
+
+  <h2>Photos you choose</h2>
+  <p>When you pick a photo, or share one to Xid from another app, Xid reads it through Android's photo picker or the share sheet, analyses it on your device, and keeps it in memory only while you view the result.</p>
+
+  <h2>Data stored on your device</h2>
+  <ul>
+    <li><strong>History.</strong> Results you save (the shutter button, or "Keep" on a photo) are stored as an annotated image plus a small text summary in the app's private storage. Only Xid can read them. They are excluded from Android cloud backup and device-to-device transfer. You can delete any item, or clear all history, in the History tab. Uninstalling Xid deletes all of them.</li>
+    <li><strong>Gallery copies.</strong> If you tap "Save", or keep "Also save live captures to Gallery" switched on, Xid writes a copy to your phone's Pictures/Xid folder. Those copies are then managed by your gallery app like any other photo.</li>
+    <li><strong>Settings.</strong> Your detection thresholds and preferences are stored on the device.</li>
+  </ul>
+
+  <h2>Data we collect</h2>
+  <p>None. Xid has no accounts, no analytics, no advertising, no crash reporting and no network access. The Android app does not request the internet permission. We cannot see your photos, results or settings.</p>
+
+  <h2>Sharing</h2>
+  <p>Xid only shares a result when you tap "Share" and choose an app. What happens next is governed by that app's privacy policy.</p>
+
+  <h2>Children</h2>
+  <p>Xid is not directed at children under 13 and does not knowingly collect any information from anyone.</p>
+
+  <h2>Educational use only</h2>
+  <p>Xid's results are model predictions, not verified facts. Do not use Xid for access control, identity verification, security screening, or any decision about a real person. Please respect the privacy of the people you photograph and follow the laws where you are.</p>
+
+  <h2>Changes and contact</h2>
+  <p>If this policy changes, the updated version will be published at this address with a new date. Questions: open an issue at <a href="https://github.com/Derrickmirindi/Xid">github.com/Derrickmirindi/Xid</a>.</p>
+
+  <p class="meta">Xid · created by Derrick Mirindi, Frederic Mirindi and David Sinkhonde</p>
+</main>
+</body>
+</html>
