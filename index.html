@@ -43,6 +43,9 @@ button.primary:hover:not(:disabled) { filter:brightness(.9); background:var(--ac
 a { color:inherit; text-underline-offset:4px; }
 button,select { transition:background 120ms,border-color 120ms; }
 [hidden] { display:none!important; }
+/* The decoding <video> must stay rendered: some browsers (Safari, some Android) never decode
+   frames for a display:none video, so the upload would never finish loading. */
+.decoder { position:fixed; right:0; bottom:0; width:2px; height:2px; opacity:.01; pointer-events:none; z-index:-1; }
 .skip { position:fixed; left:16px; top:-80px; background:var(--paper); padding:16px; z-index:30; }
 .skip:focus { top:8px; }
 .wrap { position:relative; max-width:var(--maxw); padding:0 var(--margin); margin:auto; }
@@ -325,7 +328,7 @@ Runtime: ONNX Runtime Web 1.30.0</pre>
     </div>
   </footer>
 </div>
-<video id="video" muted playsinline preload="metadata" hidden></video>
+<video id="video" class="decoder" muted playsinline preload="auto" aria-hidden="true" tabindex="-1"></video>
 <noscript><p style="padding:24px">Enable JavaScript to use Xid. Only educational use is permitted.</p></noscript>
 
 <script>
@@ -357,6 +360,8 @@ const CONFIG = Object.freeze({
   maxDetections: 100, maxCandidates: 3000,
   displayMaxSide: 1600, maxImagePixels: 40000000
 });
+const VIDEO_EXT = /\.(mp4|m4v|mov|qt|webm|mkv|ogv|ogg|3gp|3g2|avi)$/i;
+const VIDEO_ACCEPT = "video/*,.mp4,.m4v,.mov,.webm,.mkv,.ogv,.3gp";
 const OK_COLOR = "#00a86b", NO_COLOR = "#e0002a";
 const $ = id => document.getElementById(id);
 const canvas = $("canvas"), ctx = canvas.getContext("2d");
@@ -759,19 +764,29 @@ function switchMode(mode,clear=true) {
   document.querySelectorAll("[data-mode]").forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.mode===mode)));
   $("cameraPanel").hidden=mode!=="camera";$("uploadPanel").hidden=mode==="camera";
   $("uploadTitle").textContent=mode==="video"?"Choose a video of people":"Choose a photo of a person";
-  $("uploadHint").textContent=mode==="video"?"Browse or drag a file here. MP4, WebM, and browser-supported videos.":"Browse or drag a file here. JPG, PNG, WebP, and browser-supported images.";
-  $("file").accept=mode==="video"?"video/*":"image/*";
+  $("uploadHint").textContent=mode==="video"?"Browse or drag a file here. MP4 (H.264), WebM, MOV, and browser-supported videos.":"Browse or drag a file here. JPG, PNG, WebP, and browser-supported images.";
+  $("file").accept=mode==="video"?VIDEO_ACCEPT:"image/*";
 }
+const UNDECODABLE="This browser cannot decode the video inside this file. Phone videos recorded in HEVC/H.265 often fail: convert it to an H.264 MP4 (for example with HandBrake), set the phone camera to “Most compatible”, or try Chrome/Edge/Safari.";
+/* Resolves once the first frame is decoded. Many browsers stop after the metadata until
+   playback starts, so a muted play() is used to pull in the first frame. */
 function waitVideo(signal) {
-  if(video.readyState>=2) return Promise.resolve();
+  if(video.readyState>=2&&video.videoWidth) return Promise.resolve();
   return new Promise((resolve,reject)=>{
-    const cleanup=()=>{clearTimeout(timeout);video.removeEventListener("loadeddata",ok);video.removeEventListener("error",bad);signal.removeEventListener("abort",abort);};
-    const ok=()=>{cleanup();resolve();};
-    const bad=()=>{cleanup();reject(new Error("The browser could not decode this video. Try an H.264 MP4 or WebM file."));};
+    const cleanup=()=>{clearTimeout(timeout);video.removeEventListener("loadeddata",ok);video.removeEventListener("canplay",ok);video.removeEventListener("loadedmetadata",nudge);video.removeEventListener("error",bad);signal.removeEventListener("abort",abort);};
+    const ok=()=>{if(video.readyState>=2&&video.videoWidth){cleanup();resolve();}};
+    const nudge=()=>{
+      if(!video.videoWidth) { cleanup();reject(new Error(UNDECODABLE));return; } // Audio only, or a video codec the browser lacks.
+      if(video.readyState<2) video.play().catch(()=>{});
+      ok();
+    };
+    const bad=()=>{cleanup();reject(new Error(video.error?.code===4?UNDECODABLE:`The browser could not read this video${video.error?.message?` (${video.error.message})`:""}. Try an H.264 MP4 or WebM file.`));};
     const abort=()=>{cleanup();reject(new DOMException("Source changed","AbortError"));};
-    const timeout=setTimeout(()=>{cleanup();reject(new Error("Video loading timed out. Try another file or camera."));},25000);
-    video.addEventListener("loadeddata",ok,{once:true});video.addEventListener("error",bad,{once:true});signal.addEventListener("abort",abort,{once:true});
+    const timeout=setTimeout(()=>{cleanup();reject(new Error("Video loading timed out. The file may be damaged or in a format this browser can't play; try an H.264 MP4."));},30000);
+    video.addEventListener("loadeddata",ok);video.addEventListener("canplay",ok);video.addEventListener("loadedmetadata",nudge);
+    video.addEventListener("error",bad);signal.addEventListener("abort",abort,{once:true});
     if(signal.aborted) abort();
+    else if(video.readyState>=1) nudge();
   });
 }
 function preview(src,w,h) {
@@ -782,8 +797,9 @@ function preview(src,w,h) {
 }
 async function handleFile(file) {
   if(!file) return;
-  const isImage=file.type.startsWith("image/") || /\.(jpe?g|png|webp|gif|bmp|avif)$/i.test(file.name);
-  const isVideo=file.type.startsWith("video/") || /\.(mp4|webm|mov|m4v|ogv)$/i.test(file.name);
+  // Windows and Android often report an empty or generic type for MP4/MOV files, so the extension decides first.
+  const isVideo=file.type.startsWith("video/") || VIDEO_EXT.test(file.name);
+  const isImage=!isVideo && (file.type.startsWith("image/") || /\.(jpe?g|png|webp|gif|bmp|avif)$/i.test(file.name));
   if(!isImage&&!isVideo) { status("Unsupported file","Choose a browser-supported image or video.","error");return; }
   if(isImage && file.size>50*1024*1024) { status("Image too large","Choose an image under 50 MB.","error");return; }
   stopSource();switchMode(isImage?"image":"video",false);
@@ -797,14 +813,16 @@ async function handleFile(file) {
       source={kind:"image",image:img,width:img.naturalWidth,height:img.naturalHeight,name:file.name};
       preview(img,source.width,source.height);
     } else {
-      video.loop=false;video.src=url;video.load();await waitVideo(signal);
+      status("Opening video",`Reading ${file.name} (${(file.size/1048576).toFixed(1)} MB) locally.`,"loading");
+      video.loop=false;video.muted=true;video.src=url;video.load();await waitVideo(signal);
       if(epoch!==sourceEpoch) return;
       source={kind:"video",width:video.videoWidth,height:video.videoHeight,name:file.name};
       $("scrubber").hidden=false;preview(video,source.width,source.height);
+      $("time").textContent=`${formatTime(video.currentTime)} / ${formatTime(video.duration)}`;
       $("pause").disabled=!models.id;$("pause").textContent=models.id?"Pause":"Play";
       if(models.id&&!loading) {
         try { await video.play(); } catch { $("pause").textContent="Play"; }
-      }
+      } else video.pause(); // waitVideo may have started playback to decode the first frame.
     }
     if(epoch!==sourceEpoch) return;
     $("stop").disabled=false;clearMetrics();
