@@ -157,6 +157,69 @@ details summary { cursor:pointer; font-size:14px; min-height:32px; }
 .guides::after { content:""; position:absolute; inset:0; background:repeating-linear-gradient(to bottom,transparent 0,transparent calc(var(--bl) - 1px),#d6002820 calc(var(--bl) - 1px),#d6002820 var(--bl)),repeating-linear-gradient(to bottom,transparent 0,transparent calc(var(--lh) - 1px),#d6002840 calc(var(--lh) - 1px),#d6002840 var(--lh)); }
 .guides .col { border-inline:1px solid #d6002830; background:#d6002808; color:#b50025; font:12px/24px var(--mono); padding-top:8px; }
 .grid-on .guides { opacity:1; }
+/* ---- 3D motion layer: same grid, same type; depth only ---- */
+.hero-title { grid-column:1/6; }
+.hero-3d { grid-column:6/9; align-self:stretch; min-height:288px; position:relative; }
+.hero-copy { grid-column:9/13; }
+.scene { position:absolute; inset:0; perspective:900px; perspective-origin:50% 30%; }
+.floor { position:absolute; left:-30%; right:-30%; bottom:-8px; height:160px; transform:rotateX(72deg); transform-origin:50% 100%;
+  background:repeating-linear-gradient(90deg,var(--line) 0 1px,transparent 1px 32px),repeating-linear-gradient(0deg,var(--line) 0 1px,transparent 1px 32px);
+  -webkit-mask:linear-gradient(to top,#000,transparent); mask:linear-gradient(to top,#000,transparent); animation:floor 2.4s linear infinite; }
+@keyframes floor { to { background-position:0 32px,0 32px; } }
+.rig { position:absolute; left:50%; top:40px; width:144px; height:208px; margin-left:-72px; transform-style:preserve-3d;
+  transform:rotateX(var(--rx,0deg)) rotateY(var(--ry,0deg)); transition:transform 400ms cubic-bezier(.2,.7,.2,1); }
+.rig::before { content:""; position:absolute; left:8px; right:8px; bottom:-56px; height:16px; background:var(--ink); opacity:.12; filter:blur(8px); transform:rotateX(90deg) translateZ(-24px); }
+.lanyard { position:absolute; left:50%; top:-48px; width:72px; height:64px; margin-left:-36px; border:3px solid var(--accent); border-top:0; border-radius:0 0 36px 36px; transform:translateZ(-2px); clip-path:inset(0 0 24px 0); }
+.card3d { position:absolute; inset:0; transform-style:preserve-3d; animation:sway 7s ease-in-out infinite; }
+@keyframes sway { 0%,100% { transform:rotateY(-28deg) rotateX(6deg); } 50% { transform:rotateY(28deg) rotateX(-4deg); } }
+.face { position:absolute; inset:0; backface-visibility:hidden; -webkit-backface-visibility:hidden; background:var(--paper); border:1px solid var(--ink); overflow:hidden; display:grid; grid-template-rows:32px 1fr auto 24px; padding:8px; gap:8px; }
+.face.back { transform:rotateY(180deg); grid-template-rows:1fr 24px; }
+.c-band { background:var(--accent); color:#fff; font:600 12px/32px var(--mono); padding:0 8px; margin:-8px -8px 0; letter-spacing:.06em; }
+.c-photo { background:var(--panel); position:relative; }
+.c-photo i { position:absolute; left:30%; right:30%; top:18%; aspect-ratio:1; border-radius:50%; background:var(--ink); }
+.c-photo i::after { content:""; position:absolute; left:-55%; right:-55%; top:120%; height:140%; border-radius:50% 50% 0 0; background:var(--ink); }
+.c-lines { display:grid; gap:4px; } .c-lines i { height:4px; background:var(--ink); } .c-lines i:nth-child(2) { width:70%; } .c-lines i:nth-child(3) { width:45%; background:var(--muted); }
+.c-code { font:12px/24px var(--mono); color:var(--muted); }
+.c-bars { background:repeating-linear-gradient(90deg,var(--ink) 0 2px,transparent 2px 4px,var(--ink) 4px 8px,transparent 8px 11px); align-self:end; height:48px; }
+.scan { position:absolute; left:0; right:0; height:2px; background:var(--ok); box-shadow:0 0 12px var(--ok); animation:scan 2.8s ease-in-out infinite; }
+@keyframes scan { 0%,100% { top:8%; } 50% { top:92%; } }
+.det-box { position:absolute; inset:-16px -16px -16px -16px; border:3px solid var(--ok); transform:translateZ(56px); pointer-events:none; animation:lock 7s ease-in-out infinite; }
+.det-box span { position:absolute; left:-3px; top:-27px; background:var(--ok); color:#fff; font:600 12px/24px var(--mono); padding:0 8px; white-space:nowrap; }
+[data-theme=dark] .det-box span,[data-theme=dark] .c-band { color:#111; }
+@keyframes lock { 0%,100% { transform:translateZ(56px) rotateY(-14deg); opacity:.9; } 50% { transform:translateZ(56px) rotateY(14deg); opacity:1; } }
+
+/* Empty stage: the detection pipeline as three planes pulling apart in depth */
+.empty { position:relative; }
+.stack { position:absolute; right:8%; top:50%; width:208px; height:144px; margin-top:-72px; perspective:1000px; transform-style:preserve-3d; pointer-events:none; }
+.plane { position:absolute; inset:0; border:1px solid var(--ink); background:color-mix(in srgb,var(--paper) 82%,transparent); transform-style:preserve-3d;
+  transform:rotateX(58deg) rotateZ(-38deg); animation:explode 6s cubic-bezier(.6,0,.2,1) infinite; }
+.plane b { position:absolute; left:8px; top:4px; font:500 12px/24px var(--mono); }
+.p1 { --d:0px; } .p2 { --d:56px; } .p3 { --d:112px; }
+.p1 { background:repeating-linear-gradient(135deg,var(--panel) 0 8px,var(--paper) 8px 16px); }
+.p2 i { position:absolute; left:28%; right:28%; top:20%; bottom:8%; border:3px solid var(--accent); }
+.p3 { border-style:dashed; }
+.p3 i { position:absolute; left:38%; right:38%; top:22%; height:26%; border:3px solid var(--ok); }
+.p3 u { position:absolute; left:42%; right:42%; top:50%; height:34%; border:3px solid var(--ok); }
+@keyframes explode { 0%,15% { transform:rotateX(58deg) rotateZ(-38deg) translateZ(0); } 45%,75% { transform:rotateX(58deg) rotateZ(-38deg) translateZ(var(--d)); } 100% { transform:rotateX(58deg) rotateZ(-38deg) translateZ(0); } }
+
+/* Tool panels enter on a hinge and tilt under the pointer */
+.js-motion .reveal { opacity:0; transform:perspective(1200px) rotateX(10deg) translateY(32px); transform-origin:50% 0; transition:opacity 700ms ease,transform 900ms cubic-bezier(.2,.7,.2,1); transition-delay:var(--delay,0ms); }
+.js-motion .reveal.in { opacity:1; transform:none; }
+.tilt { transform:perspective(900px) rotateX(var(--tx,0deg)) rotateY(var(--ty,0deg)); transition:transform 300ms cubic-bezier(.2,.7,.2,1); }
+.verdict-mark.flip { animation:flip 600ms cubic-bezier(.2,.7,.2,1); }
+@keyframes flip { from { transform:perspective(400px) rotateY(-180deg); } to { transform:perspective(400px) rotateY(0); } }
+.verdict .verdict-title { transition:color 300ms; }
+button.primary,.source-tabs button,.transport button,.top-actions button { transition:background 120ms,border-color 120ms,transform 160ms,box-shadow 160ms; }
+button:hover:not(:disabled) { transform:translate(-2px,-2px); box-shadow:2px 2px 0 var(--ink); }
+button:active:not(:disabled) { transform:none; box-shadow:none; }
+.source-tabs button:hover:not(:disabled) { transform:none; box-shadow:inset 0 -1px var(--ink); }
+.source-tabs button[aria-pressed=true]:hover:not(:disabled) { box-shadow:inset 0 -3px var(--accent); }
+.upload { transition:transform 300ms cubic-bezier(.2,.7,.2,1),outline-color 120ms; }
+.upload.over { transform:perspective(900px) translateZ(24px); }
+.metric-value { display:inline-block; }
+@media(max-width:1100px) { .hero-title { grid-column:1/5; } .hero-3d { grid-column:5/9; } .hero-copy { grid-column:9/13; } .stack { right:4%; transform:scale(.8); } }
+@media(max-width:760px) { .hero-title,.hero-3d,.hero-copy { grid-column:1/5; } .hero-3d { min-height:320px; margin-top:24px; } .stack { display:none; } }
+@media(prefers-reduced-motion:reduce) { .js-motion .reveal { opacity:1; transform:none; } .tilt,.rig { transform:none!important; } }
 @media(min-width:1500px) { :root { --margin:64px; } }
 @media(max-width:1100px) {
   :root { --margin:32px; --gutter:16px; }
@@ -207,6 +270,25 @@ details summary { cursor:pointer; font-size:14px; min-height:32px; }
     </div>
     <div class="band hero">
       <div class="hero-title"><p class="eyebrow">Look. Detect. Decide.</p><h1 class="masthead optical">Xid</h1></div>
+      <div class="hero-3d" aria-hidden="true">
+        <div class="scene" id="heroScene">
+          <div class="floor"></div>
+          <div class="rig" id="heroRig">
+            <div class="lanyard"></div>
+            <div class="card3d">
+              <div class="face front">
+                <span class="c-band">XID / 2026</span>
+                <span class="c-photo"><i></i></span>
+                <span class="c-lines"><i></i><i></i><i></i></span>
+                <span class="c-code">ID 0042</span>
+                <span class="scan"></span>
+              </div>
+              <div class="face back"><span class="c-bars"></span><span class="c-code">EDUCATIONAL USE</span></div>
+            </div>
+            <div class="det-box"><span>✓ ID CARD 94%</span></div>
+          </div>
+        </div>
+      </div>
       <div class="hero-copy"><p>Every person, one box, one tag: who in the frame carries a visible ID card? Xid answers frame by frame, entirely on your device.</p><p class="mono muted">Images / video / live camera</p></div>
     </div>
     <div class="band education">
@@ -281,6 +363,11 @@ details summary { cursor:pointer; font-size:14px; min-height:32px; }
           <div id="empty" class="empty">
             <div><span class="index optical">01</span><h3>Show Xid<br>a person.</h3><p>Choose a photo, load a video, or switch to the live camera. Xid boxes every person: green around face + ID tag, or red around a person without one.</p></div>
             <div class="empty-bottom"><span>FACE ∪ TAG → ID CARD</span><span>ON DEVICE</span></div>
+            <div class="stack" aria-hidden="true">
+              <div class="plane p1"><b>01 FRAME</b></div>
+              <div class="plane p2"><b>02 PERSON</b><i></i></div>
+              <div class="plane p3"><b>03 FACE ∪ TAG</b><i></i><u></u></div>
+            </div>
           </div>
           <canvas id="canvas" width="1280" height="720" hidden aria-label="Source frame with the main person boxed and tagged">Your browser does not support canvas.</canvas>
           <span id="stageLabel" class="stage-label" hidden>Preview</span>
@@ -963,6 +1050,50 @@ $("themeToggle").addEventListener("click",()=>{manualTheme=true;setTheme(documen
 themeMedia.addEventListener("change",e=>{if(!manualTheme)setTheme(e.matches);});
 window.addEventListener("resize",()=>{rebuildGuides();opticalAlignment();});
 document.fonts.ready.then(opticalAlignment);rebuildGuides();
+
+/* 3D motion: hinge-in reveals, pointer tilt on the tool panels, card follows the pointer,
+   verdict mark flips on each new answer. Off when the user prefers reduced motion. */
+(function motion() {
+  if(matchMedia("(prefers-reduced-motion:reduce)").matches) return;
+  document.documentElement.classList.add("js-motion");
+  const reveal=[".hero-title",".hero-3d",".hero-copy",".education",".controls",".verdict",".stage",".transport",".metrics",".results",".details"];
+  const els=reveal.flatMap(s=>[...document.querySelectorAll(s)]);
+  els.forEach((el,i)=>{el.classList.add("reveal");el.style.setProperty("--delay",`${(i%4)*90}ms`);});
+  if("IntersectionObserver" in window) {
+    const io=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){e.target.classList.add("in");io.unobserve(e.target);}}),{threshold:.08});
+    els.forEach(el=>io.observe(el));
+  } else els.forEach(el=>el.classList.add("in"));
+  const fine=matchMedia("(pointer:fine)").matches;
+  const tilt=(el,max,guard=()=>true)=>{
+    el.classList.add("tilt");
+    el.addEventListener("pointermove",e=>{
+      if(!guard()) return;
+      const r=el.getBoundingClientRect(),x=(e.clientX-r.left)/r.width-.5,y=(e.clientY-r.top)/r.height-.5;
+      el.style.setProperty("--ty",`${(x*max).toFixed(2)}deg`);el.style.setProperty("--tx",`${(-y*max).toFixed(2)}deg`);
+    });
+    el.addEventListener("pointerleave",()=>{el.style.setProperty("--tx","0deg");el.style.setProperty("--ty","0deg");});
+  };
+  if(fine) {
+    // After the reveal finishes, hand the transform over to the tilt.
+    const ready=(el,fn)=>el.addEventListener("transitionend",function h(e){if(e.propertyName==="transform"&&el.classList.contains("in")){el.removeEventListener("transitionend",h);el.classList.remove("reveal");fn();}});
+    ready($("verdict"),()=>tilt($("verdict"),6));
+    ready(document.querySelector(".metrics"),()=>tilt(document.querySelector(".metrics"),4));
+    ready($("stage"),()=>tilt($("stage"),5,()=>!$("empty").hidden));
+    tilt($("drop"),6);
+    const rig=$("heroRig");
+    addEventListener("pointermove",e=>{
+      const x=e.clientX/innerWidth-.5,y=e.clientY/innerHeight-.5;
+      rig.style.setProperty("--ry",`${(x*30).toFixed(1)}deg`);rig.style.setProperty("--rx",`${(-y*16).toFixed(1)}deg`);
+    },{passive:true});
+  }
+  // Canvas shown: flatten the stage so detections are read square-on.
+  new MutationObserver(()=>{if($("empty").hidden){$("stage").style.setProperty("--tx","0deg");$("stage").style.setProperty("--ty","0deg");}}).observe($("empty"),{attributes:true,attributeFilter:["hidden"]});
+  const mark=$("verdictMark");let last=$("verdict").dataset.state;
+  new MutationObserver(()=>{
+    const s=$("verdict").dataset.state;if(s===last||s==="busy")return;last=s;
+    mark.classList.remove("flip");void mark.offsetWidth;mark.classList.add("flip");
+  }).observe($("verdict"),{attributes:true,attributeFilter:["data-state"]});
+})();
 loadModel();
 </script>
 </body>
